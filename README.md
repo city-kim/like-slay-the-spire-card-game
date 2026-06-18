@@ -2,6 +2,8 @@
 
 덱빌딩 로그라이크(슬레이 더 스파이어)를 웹에서 재구현하는 프로젝트.
 
+https://city-kim.github.io/like-slay-the-spire-card-game
+
 ## 스택
 
 - **TypeScript** — 전 영역
@@ -101,7 +103,7 @@ test-engineer가 테스트 → 필요 시 balance-simulator가 밸런스 확인.
 
 ```ts
 const { t, locale, setLocale } = useTranslation();
-t("card.strike.name");                 // ko: "타격" / en: "Strike"
+t("card.strike.name"); // ko: "타격" / en: "Strike"
 t("log.youHit", { enemy: { tkey: "enemy.jawWorm.name" }, dmg: 9 });
 ```
 
