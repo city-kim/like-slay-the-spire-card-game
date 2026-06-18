@@ -1,0 +1,111 @@
+import { DEMO_DECK } from "../engine";
+import { useTranslation } from "../i18n";
+import { relicImage } from "./assetImages";
+import logoUrl from "../assets/ui/logo.png";
+import { useRun } from "./useRun";
+import { CombatView } from "./CombatView";
+import { MapView } from "./MapView";
+import { RewardView } from "./RewardView";
+import { RestView } from "./RestView";
+import { ShopView } from "./ShopView";
+import { EventView } from "./EventView";
+import { PotionBar } from "./PotionBar";
+import { SeedControl } from "./SeedControl";
+import { LanguageSwitcher } from "./LanguageSwitcher";
+
+export function RunScreen() {
+  const { t } = useTranslation();
+  const { state, dispatch, restart } = useRun({
+    seed: 1,
+    deck: DEMO_DECK,
+    maxHp: 80,
+    randomRelics: 1, // one random starting relic
+  });
+
+  const { player } = state;
+
+  return (
+    <div className="run">
+      <header className="topbar">
+        <img className="app-logo" src={logoUrl} alt={t("app.title")} />
+        <div className="run-stats">
+          <span>❤ {player.hp}/{player.maxHp}</span>
+          <span>💰 {player.gold}</span>
+          <span>🎴 {player.deck.length}</span>
+        </div>
+        <LanguageSwitcher />
+        <button onClick={() => restart()}>{t("run.restart")}</button>
+      </header>
+
+      <SeedControl seed={state.seed} onStart={(seed) => restart(seed)} />
+
+      <div className="run-belts">
+        {player.relics.length > 0 && (
+          <section className="relics" aria-label={t("ui.relics")}>
+            {player.relics.map((id) => {
+              const art = relicImage(id);
+              return (
+                <span key={id} className="relic" title={`${t(`relic.${id}.name`)} — ${t(`relic.${id}.description`)}`}>
+                  {art ? <img className="relic-icon" src={art} alt="" /> : null}
+                  {t(`relic.${id}.name`)}
+                </span>
+              );
+            })}
+          </section>
+        )}
+        <PotionBar
+          potions={player.potions}
+          canUse={state.phase === "combat" && state.combat?.phase === "player"}
+          onUse={(slot) => dispatch({ type: "usePotion", slot })}
+        />
+      </div>
+
+      {state.phase === "map" && (
+        <MapView run={state} onSelect={(nodeId) => dispatch({ type: "selectNode", nodeId })} />
+      )}
+
+      {state.phase === "combat" && state.combat && (
+        <CombatView state={state.combat} onAction={(action) => dispatch({ type: "combat", action })} />
+      )}
+
+      {state.phase === "reward" && state.reward && (
+        <RewardView
+          reward={state.reward}
+          potionsFull={player.potions.length >= 3}
+          onChoose={(cardId) => dispatch({ type: "chooseReward", cardId })}
+          onTakePotion={() => dispatch({ type: "takeRewardPotion" })}
+        />
+      )}
+
+      {state.phase === "rest" && (
+        <RestView
+          run={state}
+          onHeal={() => dispatch({ type: "restHeal" })}
+          onUpgrade={(cardIndex) => dispatch({ type: "restUpgrade", cardIndex })}
+        />
+      )}
+
+      {state.phase === "event" && state.event && (
+        <EventView run={state} onChoose={(index) => dispatch({ type: "chooseEventOption", index })} />
+      )}
+
+      {state.phase === "shop" && state.shop && (
+        <ShopView
+          run={state}
+          onBuyCard={(index) => dispatch({ type: "buyShopCard", index })}
+          onBuyRelic={(index) => dispatch({ type: "buyShopRelic", index })}
+          onBuyPotion={(index) => dispatch({ type: "buyShopPotion", index })}
+          onRemoveCard={(cardIndex) => dispatch({ type: "removeCard", cardIndex })}
+          onLeave={() => dispatch({ type: "leaveShop" })}
+        />
+      )}
+
+      {(state.phase === "gameOver" || state.phase === "victory") && (
+        <div className={`banner ${state.phase === "victory" ? "won" : "lost"}`}>
+          {state.phase === "victory" ? t("run.victory") : t("run.gameOver")}
+          <button onClick={() => restart()}>{t("run.restart")}</button>
+        </div>
+      )}
+    </div>
+  );
+}
