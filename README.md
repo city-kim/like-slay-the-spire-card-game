@@ -6,10 +6,12 @@ https://city-kim.github.io/like-slay-the-spire-card-game
 
 ## 스택
 
-- **TypeScript** — 전 영역
+- **TypeScript 6** — 전 영역
 - **순수 TS 게임 엔진** — `src/engine`. DOM/React 비종속, 결정론적(시드 기반 RNG), 단위 테스트 가능.
-- **React + Vite** — `src/ui`. 엔진 상태를 그리기만 하는 얇은 표현 계층.
-- **Vitest** — 엔진 로직 테스트.
+- **순수 런(run) 레이어** — `src/run`. 전투 위 메타 진행(맵/런/난이도). 전투는 엔진에 위임.
+- **React 19 + Vite 8** — `src/ui`. 엔진/런 상태를 그리기만 하는 얇은 표현 계층.
+- **Vitest 4** — 엔진/런/콘텐츠/골든 테스트 73개.
+- **pnpm 11** — 패키지 매니저.
 
 ## 설계 원칙: 엔진과 UI의 분리
 
@@ -29,34 +31,36 @@ reduce(state: GameState, action: GameAction, rng: RNG): GameState
 src/
 ├── engine/              # 순수 게임 로직 (프레임워크 비종속)
 │   ├── types.ts         #   도메인 타입 (Card, Enemy, GameState, Effect, ...)
-│   ├── rng.ts           #   시드 PRNG + 셔플
-│   ├── cards.ts         #   카드 정의 + 스타터/데모 덱
-│   ├── enemies.ts       #   적 정의 + 인텐트 패턴
+│   ├── rng.ts           #   시드 PRNG(직렬화 가능) + 셔플
+│   ├── cards.ts         #   카드 100장 + 희귀도 + 강화판 + isPlayable
+│   ├── enemies.ts       #   적 정의 + 확률적 AI 패턴
+│   ├── potions.ts       #   포션 정의
 │   ├── internal.ts      #   공유 순수 헬퍼 (상태/데미지/전투원 ref)
 │   ├── triggers.ts      #   트리거 버스 — 상태이상 지속/감소 (턴 경계)
 │   ├── relics.ts        #   유물 — 전투 이벤트 구독 (시작/카드/턴)
 │   ├── combat.ts        #   reduce() 리듀서 — 전투의 단일 진입점
-│   ├── combat.test.ts   #   엔진 단위 테스트 (16개)
+│   ├── combat.test.ts / golden.test.ts  # 엔진 + 골든/리플레이 테스트
 │   └── index.ts         #   배럴 export
 ├── run/                 # 런(run) 레이어 — 전투 위 메타 진행 (순수)
 │   ├── types.ts         #   RunState, MapNode, RunAction
-│   ├── map.ts           #   절차적 노드 맵 생성 (시드 결정론)
-│   ├── run.ts           #   runReduce() — 맵/전투/보상/보스 전이
-│   ├── run.test.ts      #   런 단위 테스트
+│   ├── map.ts           #   절차적 노드 맵 생성 (36행, 시드 결정론)
+│   ├── run.ts           #   runReduce() — 맵/전투/보상/상점/이벤트/보스/난이도
+│   ├── events.ts        #   랜덤/전투 이벤트 (RunEffect)
+│   ├── characters.ts    #   캐릭터 정의 (덱/체력/유물)
+│   ├── run.test.ts
 │   └── index.ts
-├── i18n/                # 국제화 (표현 텍스트 분리)
-│   ├── locales/ko.ts    #   한국어(기본) — 모든 표시 문구
-│   ├── locales/en.ts    #   English (Resources 타입으로 구조 강제)
-│   ├── i18n.ts          #   translate() 순수 번역 함수
-│   ├── I18nContext.tsx  #   React 컨텍스트 + useTranslation()
-│   └── index.ts
+├── i18n/                # 국제화 — 엔진은 번역 키만, ko(기본)/en
+├── content.test.ts      # 콘텐츠 정의 검증 (카드/적/유물/포션/이벤트 i18n+구조)
+├── assets/              # cards/ monsters/ relics/ potions/ nodes/ characters/ ui/ sfx/
 └── ui/                  # React 표현 계층
-    ├── useRun.ts        #   런 ↔ React 바인딩 훅
+    ├── useRun.ts        #   런 ↔ React 바인딩 + 세이브로드 + 캐릭터 선택 게이트
     ├── RunScreen.tsx    #   런 오케스트레이션 (phase 분기)
-    ├── MapView.tsx      #   노드 맵 화면
-    ├── CombatView.tsx   #   전투 화면 (프레젠테이션)
-    ├── RewardView.tsx   #   보상(카드 3택1) 화면
-    ├── LanguageSwitcher.tsx #  언어 전환 드롭다운
+    ├── CharacterSelect / MapView / CombatView / RewardView
+    ├── RestView / ShopView / EventView / PotionBar
+    ├── CardFace / CardTags / useHpPopups   # 카드 표시 + 피해 팝업
+    ├── *Images.ts       #   에셋 glob 매핑 (카드/몬스터/유물/포션/노드/캐릭터)
+    ├── sound.ts / SoundToggle / runStorage / difficultyStorage
+    ├── LanguageSwitcher.tsx
     └── styles.css
 ```
 
@@ -107,24 +111,38 @@ t("card.strike.name"); // ko: "타격" / en: "Strike"
 t("log.youHit", { enemy: { tkey: "enemy.jawWorm.name" }, dmg: 9 });
 ```
 
-## 현재 구현된 것 (기본 하네스)
+## 현재 구현된 것
 
-- 단일 전투 루프: 드로우(5장) → 카드 플레이(에너지 3) → 턴 종료 → 적 행동 → 반복
-- 더미/버림/소멸(exhaust) 더미, 더미 소진 시 자동 재셔플
-- 카드: **100장** (직업 비종속) + 희귀도(기본/일반/고급/희귀) + `+` 강화판 + 키워드(Exhaust·Innate·Retain·Ethereal)
-- 상태이상: 취약/약화/취약(방어)/힘/민첩/중독/금속화/재생/악마의 형상 + 방어도
-- 적: 일반 5종 + 보스(수호자), 그룹 인카운터 (텔레그래프된 인텐트 패턴)
-- 승리/패배 판정
-- 전투 화면 UI (체력바, 인텐트, 손패, 더미 카운트, 전투 로그)
-- **i18n (한국어/English) + 언어 전환**
-- **트리거 버스** — 상태이상 지속/감소(독·취약·약화), 파워 카드(악마의 형상)
-- **다중 적 타겟팅** + AoE 카드(베어가르기)
-- **유물 시스템** — 전투 시작/카드 플레이/턴 시작 이벤트 구독 (Anchor·Vajra·Shuriken 등)
-- **런(run) 구조** — 절차적 노드 맵(전투/정예/휴식/보물/상점/보스), HP/골드/덱/유물 이월,
-  전투 후 보상(카드 3택1), 휴식(회복/카드 강화), 상점(카드·유물 구매/카드 제거), 보스 클리어/사망 판정
-- **포션** — 슬롯 3칸, 전투 중 즉시 사용(치유/방어/힘/신속/에너지/폭발), 보상·상점에서 획득
-- **세이브/로드** — 런 상태 + RNG를 localStorage에 자동 저장, 새로고침해도 이어하기(결정론 보장)
+플레이 가능한 슬더스류 로그라이크. **캐릭터 선택 → 36행 맵 → 전투/정예/휴식/보물/상점/이벤트
+→ 보스 → 클리어 시 난이도 상승(무한)** 의 완결된 루프.
+
+**전투**
+- 드로우(5장) → 카드 플레이(에너지 3) → 턴 종료 → **적이 한 마리씩 순서대로 행동**(스텝) → 반복
+- 뽑을/버린/소멸 더미 + 자동 재셔플, 손패 상한 10
+- 다중 적 **타겟팅**(단일 공격 적 선택, AoE 즉시), 키보드 조작(1–9 / E / Esc)
+- **트리거 버스** — 상태이상 지속/감소(취약·약화·취약방어·중독·금속화·재생), 파워(악마의 형상)
+- **적 확률적 AI** — 가중 인텐트 + "같은 수 3연속 금지" + 무브 히스토리
+
+**콘텐츠**
+- 카드 **100장**(직업 비종속) + 희귀도(기본/일반/고급/희귀) + `+` 강화판
+  + 키워드(Exhaust·Innate·Retain·Ethereal) + **코스트 X**(회오리바람/꼬치꿰기)
+- 적 일반 11종 + **보스 2종**(수호자/슬라임왕), 그룹 인카운터
+- **다중 캐릭터** 3종(전사/도적/마법사) — 시작 덱·체력·유물 차별화
+
+**메타 진행 (run)**
+- 절차적 노드 맵, HP/골드/덱/유물/포션 이월
+- 보상(카드 3택1 + 골드 + 포션 확률), 휴식(회복/강화), 상점(구매/제거), 랜덤·전투 이벤트
+- **유물** — 전투 시작/카드 플레이/턴 시작 이벤트 구독
+- **포션** — 슬롯 3칸, 전투 중 즉시 사용
+- **엔드리스 난이도** — 적 기본 체력 1.5배, 클리어마다 난이도 escalate(적 HP/힘 증가)
+- **세이브/로드** — 런 상태 + RNG를 localStorage에 자동 저장, 새로고침해도 이어하기
+
+**UX / 엔지니어링**
+- i18n(한국어/English) — 엔진은 번역 키만 보유
+- 이미지(카드/몬스터/유물/포션/노드/캐릭터/배경), 피해 숫자 팝업, 카드 플레이 연출, 반응형
+- 사운드 시스템 구조(에셋 추가 시 자동 재생, 현재 에셋은 TODO)
+- 테스트 73개(엔진/런/콘텐츠 검증/카드 골든/시드 리플레이 결정론) + 헤드리스 밸런스 시뮬
 
 ## 앞으로 구현할 것 (로드맵)
 
-자세한 작업 목록은 [ROADMAP.md](ROADMAP.md) 참고.
+자세한 작업 목록·상세 구현 현황은 [ROADMAP.md](ROADMAP.md) 참고.
