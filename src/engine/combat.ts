@@ -17,12 +17,18 @@ import {
   applyDamage,
   computeAttackDamage,
   computeBlock,
+  drawCards,
+  MAX_HAND,
 } from "./internal";
 import { applyTurnEndTriggers, applyTurnStartTriggers } from "./triggers";
-import { relicOnCardPlayed, relicOnCombatStart, relicOnPlayerTurnStart } from "./relics";
+import {
+  relicOnCardPlayed,
+  relicOnCombatStart,
+  relicOnPlayerTurnEnd,
+  relicOnPlayerTurnStart,
+} from "./relics";
 
 const HAND_SIZE = 5;
-const MAX_HAND = 10;
 const START_ENERGY = 3;
 const START_HP = 80;
 
@@ -95,10 +101,13 @@ export function createInitialState(opts: StartOptions = {}): GameState {
     log: [{ key: "log.combatStart" }],
   };
 
-  // Combat-start relics, then turn-0 turn-start relics, then fill the hand.
+  // Fill the opening hand FIRST, then fire combat-start and turn-0 relics, so
+  // draw relics (Bag of Preparation, Enchiridion) add cards on top of the hand
+  // rather than being absorbed into the opening fill.
+  state = drawCards(state, Math.max(0, HAND_SIZE - state.hand.length), rng);
   state = relicOnCombatStart(state, rng);
   state = relicOnPlayerTurnStart(state, rng);
-  return drawCards(state, Math.max(0, HAND_SIZE - state.hand.length), rng);
+  return state;
 }
 
 function spawnEnemy(def: EnemyDef, rng: RNG, hpMult: number, strength: number): Enemy {
@@ -115,27 +124,6 @@ function spawnEnemy(def: EnemyDef, rng: RNG, hpMult: number, strength: number): 
   };
 }
 
-// ─── Card draw ───────────────────────────────────────────────────────────────
-
-function drawCards(state: GameState, count: number, rng: RNG): GameState {
-  let drawPile = state.drawPile.slice();
-  let discardPile = state.discardPile.slice();
-  const hand = state.hand.slice();
-  const log = state.log.slice();
-
-  for (let i = 0; i < count; i++) {
-    if (hand.length >= MAX_HAND) break; // hand is full; excess draws are burned
-    if (drawPile.length === 0) {
-      if (discardPile.length === 0) break; // nothing left to draw
-      drawPile = shuffle(discardPile, rng);
-      discardPile = [];
-      log.push({ key: "log.reshuffle" });
-    }
-    hand.push(drawPile.shift()!);
-  }
-
-  return { ...state, drawPile, discardPile, hand, log };
-}
 
 // ─── Effect resolution ───────────────────────────────────────────────────────
 
@@ -370,8 +358,12 @@ function endTurn(state: GameState, rng: RNG): GameState {
     log: [...state.log, { key: "log.endOfTurn" }],
   };
 
-  // 2. Player turn-end triggers (decay the player's temporary debuffs).
+  // 2. Player turn-end triggers (decay the player's temporary debuffs), then
+  //    turn-end relics.
   next = applyTurnEndTriggers(next, "player");
+  next = relicOnPlayerTurnEnd(next, rng);
+  next = checkCombatEnd(next);
+  if (next.phase !== "player") return next;
 
   // 3. Enter the enemy phase: turn-start triggers (poison etc.) may end combat.
   next = checkCombatEnd(applyTurnStartTriggers({ ...next, phase: "enemy" }, "enemy"));

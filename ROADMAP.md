@@ -56,13 +56,16 @@
 
 ## 4. 아이템 시스템 ✅ (유물·상점·포션)
 
-- ✅ **유물(Relic) — 1차** — `relics.ts`의 이벤트 구독 시스템. 이벤트: `onCombatStart`
-   / `onCardPlayed` / `onPlayerTurnStart`. 5종 구현(Anchor·Vajra·Bag of Marbles·
-   Shuriken·Mercury Hourglass). 카운터는 `state.relicCounters`. 확장: `onDamage`/
-   `onEnemyDeath` 등 이벤트 추가, 런 단위 유물 인벤토리.
+- ✅ **유물(Relic) — 55종** — `relics.ts`의 이벤트 구독 시스템. 이벤트:
+   `onCombatStart` / `onPlayerTurnStart` / `onPlayerTurnEnd` / `onCardPlayed`.
+   효과는 헬퍼 조합(block/energy/buff/heal/dmgAll/debuffAll/draw)으로 데이터화 →
+   유물 추가는 `RELIC_DEFS` 한 줄 + i18n. 카테고리: 전투 시작 자버프(힘/민첩/방어/
+   금속화/재생/에너지/드로우/회복), 전투 시작 적 디버프(취약/약화/취약방어/중독),
+   매 턴 시작·종료 효과, 카드 N회마다 발동(카운터, `state.relicCounters`).
 - ✅ **상점** — 카드/유물/포션 구매 + 1회 카드 제거 서비스. 골드 사용처 완성.
-- ✅ **포션(Potion)** — 슬롯 3칸 제한, 전투 중 즉시 사용(`applyPlayerEffects`로 Effect 재사용).
-   6종(치유/방어/힘/신속/에너지/폭발). 전투 보상 확률 + 상점 구매로 획득.
+- ✅ **포션(Potion) — 21종** — 슬롯 3칸 제한, 전투 중 즉시 사용(`applyPlayerEffects`로
+   Effect 재사용). 회복/방어/버프(힘·민첩·금속화·재생)/적 디버프(취약·약화·중독·취약방어)/
+   AoE·단일 피해/드로우·에너지/광폭(에너지↔체력). 전투 보상 확률 + 상점 구매로 획득.
 
 ## 5. 이벤트 / 내러티브 ✅
 

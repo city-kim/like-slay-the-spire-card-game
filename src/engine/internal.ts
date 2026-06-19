@@ -4,6 +4,30 @@
 // immutable: functions return new state/values and never mutate inputs.
 
 import type { CombatantRef, GameState, Side, Statuses, StatusId } from "./types";
+import { shuffle, type RNG } from "./rng";
+
+export const MAX_HAND = 10;
+
+/** Draws `count` cards (reshuffling discard if needed), capped at MAX_HAND.
+ *  Shared by the reducer and relics so both can draw. */
+export function drawCards(state: GameState, count: number, rng: RNG): GameState {
+  let drawPile = state.drawPile.slice();
+  let discardPile = state.discardPile.slice();
+  const hand = state.hand.slice();
+  const log = state.log.slice();
+
+  for (let i = 0; i < count; i++) {
+    if (hand.length >= MAX_HAND) break; // hand is full; excess draws are burned
+    if (drawPile.length === 0) {
+      if (discardPile.length === 0) break; // nothing left to draw
+      drawPile = shuffle(discardPile, rng);
+      discardPile = [];
+      log.push({ key: "log.reshuffle" });
+    }
+    hand.push(drawPile.shift()!);
+  }
+  return { ...state, drawPile, discardPile, hand, log };
+}
 
 /** Add `amount` to a status, clamping at 0 (a stack reaching 0 is removed). */
 export function addStatus(statuses: Statuses, id: StatusId, amount: number): Statuses {

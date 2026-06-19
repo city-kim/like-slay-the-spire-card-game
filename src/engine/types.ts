@@ -88,11 +88,67 @@ export interface CardInstance {
  * relic needs no reducer changes.
  */
 export type RelicId =
-  | "anchor" // combat start: gain 10 Block
-  | "vajra" // combat start: gain 1 Strength
-  | "bagOfMarbles" // combat start: apply 1 Vulnerable to all enemies
-  | "shuriken" // every 3rd Attack played: gain 1 Strength
-  | "mercuryHourglass"; // each turn start: deal 3 damage to all enemies
+  // ── originals ──
+  | "anchor"
+  | "vajra"
+  | "bagOfMarbles"
+  | "shuriken"
+  | "mercuryHourglass"
+  // ── combat-start self buffs ──
+  | "oddlySmoothStone"
+  | "girya"
+  | "lantern"
+  | "ancientTeaSet"
+  | "bagOfPreparation"
+  | "ringOfSerpent"
+  | "bloodVial"
+  | "cleric"
+  | "toughBracers"
+  | "ironShell"
+  | "herbalSalve"
+  | "crystalBall"
+  | "titanShield"
+  | "warpedTongs"
+  | "fossilizedHelix"
+  | "brimstone"
+  // ── combat-start enemy debuffs ──
+  | "redMask"
+  | "frostShard"
+  | "snakeRing"
+  | "toxicVial"
+  | "cursedTotem"
+  | "hexStone"
+  | "plagueBell"
+  // ── each turn start ──
+  | "incenseBurner"
+  | "magicFlower"
+  | "stormCloud"
+  | "enchiridion"
+  | "windChime"
+  | "vampiricIdol"
+  | "frostbiteCharm"
+  | "emberCore"
+  | "coffeeDripper"
+  | "prayerBeads"
+  | "spectralArmor"
+  // ── each turn end ──
+  | "plateArmor"
+  | "nightDew"
+  | "caltrops"
+  | "stoneskin"
+  | "emberShield"
+  | "moonstone"
+  | "ironwoodIdol"
+  // ── on card played (counters) ──
+  | "kunai"
+  | "ornamentalFan"
+  | "letterOpener"
+  | "inkBottle"
+  | "nunchaku"
+  | "toxicGland"
+  | "pocketwatch"
+  | "wristblade"
+  | "chronometer";
 
 export interface Player {
   hp: number;

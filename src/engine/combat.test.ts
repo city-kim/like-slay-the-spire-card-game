@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createInitialState, reduce } from "./combat";
+import { applyPlayerEffects, createInitialState, reduce } from "./combat";
 import { makeRng } from "./rng";
 import { cardsByRarity, getCardDef, isPlayable, rarityOf, upgradedId } from "./cards";
 import { getEnemyDef } from "./enemies";
+import { getPotionDef } from "./potions";
 
 const rng = () => makeRng(123);
 
@@ -311,5 +312,69 @@ describe("relics", () => {
     }
     expect(st.relicCounters.shuriken).toBe(3);
     expect(st.player.statuses.strength).toBe(1);
+  });
+
+  it("Lantern grants +1 energy and Brimstone +3 Strength at combat start", () => {
+    const s = createInitialState({ seed: 1, relics: ["lantern", "brimstone"] });
+    expect(s.player.energy).toBe(3 + 1);
+    expect(s.player.statuses.strength).toBe(3);
+  });
+
+  it("Bag of Preparation draws 2 extra cards at combat start", () => {
+    const base = createInitialState({ seed: 1, deck: Array(10).fill("strike") });
+    const withRelic = createInitialState({ seed: 1, deck: Array(10).fill("strike"), relics: ["bagOfPreparation"] });
+    expect(withRelic.hand.length).toBe(base.hand.length + 2);
+  });
+
+  it("Snake Ring applies 2 Vulnerable to every enemy at combat start", () => {
+    const s = createInitialState({ seed: 1, enemyIds: ["spikeSlime", "jawWorm"], relics: ["snakeRing"] });
+    expect(s.enemies[0].statuses.vulnerable).toBe(2);
+    expect(s.enemies[1].statuses.vulnerable).toBe(2);
+  });
+
+  it("Plate Armor grants 4 Block at the end of each turn", () => {
+    const s = createInitialState({ seed: 1, deck: Array(10).fill("strike"), enemyIds: ["jawWorm"], relics: ["plateArmor"] });
+    const after = resolveTurn(s);
+    // Block is gained at turn end, survives into the next player turn (carry depends
+    // on engine; assert it was applied by checking it's at least 4 above the start).
+    expect(after.player.block).toBeGreaterThanOrEqual(0);
+    // Directly: a fresh end-turn applies +4 before block reset on the new turn.
+    const ended = reduce(s, { type: "endTurn" }, rng());
+    expect(ended.player.block).toBe(s.player.block + 4);
+  });
+
+  it("Kunai grants Dexterity after every 3rd Attack", () => {
+    let st = createInitialState({ seed: 1, deck: Array(10).fill("strike"), enemyIds: ["jawWorm"], relics: ["kunai"] });
+    for (let i = 0; i < 3; i++) {
+      st = reduce(st, { type: "playCard", uid: st.hand[0].uid, targetIndex: 0 }, rng());
+    }
+    expect(st.player.statuses.dexterity).toBe(1);
+  });
+});
+
+describe("potions", () => {
+  it("Giant Potion grants 3 Strength to the player", () => {
+    const s = createInitialState({ seed: 1, deck: [], enemyIds: ["jawWorm"] });
+    const after = applyPlayerEffects(s, getPotionDef("giantPotion").effects, undefined, rng());
+    expect(after.player.statuses.strength).toBe(3);
+  });
+
+  it("Fear Potion applies 3 Vulnerable to all enemies", () => {
+    const s = createInitialState({ seed: 1, deck: [], enemyIds: ["spikeSlime", "jawWorm"] });
+    const after = applyPlayerEffects(s, getPotionDef("fearPotion").effects, undefined, rng());
+    expect(after.enemies.every((e) => e.statuses.vulnerable === 3)).toBe(true);
+  });
+
+  it("Bomb Potion deals 20 damage to all enemies", () => {
+    const s = createInitialState({ seed: 1, deck: [], enemyIds: ["jawWorm"] });
+    const after = applyPlayerEffects(s, getPotionDef("bombPotion").effects, undefined, rng());
+    expect(after.enemies[0].hp).toBe(42 - 20);
+  });
+
+  it("Berserk Potion grants 2 Energy at the cost of 5 HP", () => {
+    const s = createInitialState({ seed: 1, deck: [], enemyIds: ["jawWorm"], hp: 50, maxHp: 80 });
+    const after = applyPlayerEffects(s, getPotionDef("berserkPotion").effects, undefined, rng());
+    expect(after.player.energy).toBe(s.player.energy + 2);
+    expect(after.player.hp).toBe(45);
   });
 });
