@@ -9,12 +9,24 @@ interface MoveOption {
   weight: number;
 }
 
-/** Weighted-random move pick that forbids a 3rd consecutive identical move. */
+/** Weighted-random move pick with two AI rules:
+ *  1. After a buff/debuff turn, the enemy MUST attack this turn (if it has any
+ *     attack option) — no chaining buffs/debuffs back to back.
+ *  2. It cannot repeat the same move a 3rd time in a row. */
 function chooseMove(ctx: EnemyMoveContext, options: MoveOption[]): EnemyMove {
+  let pool = options;
+
+  // Rule 1: forced attack after a buff/debuff.
+  if (ctx.lastIntent === "buff" || ctx.lastIntent === "debuff") {
+    const attacks = pool.filter((o) => o.move.intent === "attack");
+    if (attacks.length > 0) pool = attacks;
+  }
+
+  // Rule 2: forbid a 3rd consecutive identical move.
   const h = ctx.history;
   const bannedId = h.length >= 2 && h[h.length - 1] === h[h.length - 2] ? h[h.length - 1] : null;
-  let pool = options.filter((o) => o.move.id !== bannedId);
-  if (pool.length === 0) pool = options;
+  const deduped = pool.filter((o) => o.move.id !== bannedId);
+  if (deduped.length > 0) pool = deduped;
 
   const total = pool.reduce((sum, o) => sum + o.weight, 0);
   let r = ctx.rng.next() * total;

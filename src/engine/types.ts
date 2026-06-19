@@ -176,6 +176,9 @@ export interface EnemyMoveContext {
   rng: RNG;
   /** Recent move ids (oldest → newest), for probabilistic / no-repeat AI. */
   history: string[];
+  /** Intent of the move performed on the previous turn (undefined on turn 0).
+   *  Drives the "after a buff/debuff turn, must attack" rule. */
+  lastIntent?: EnemyMove["intent"];
 }
 
 export interface EnemyDef {

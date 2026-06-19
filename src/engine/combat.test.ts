@@ -158,6 +158,26 @@ describe("enemy AI", () => {
     // The AI uses more than one distinct move (it's not a fixed loop).
     expect(new Set(history).size).toBeGreaterThan(1);
   });
+
+  it("must attack the turn after a buff/debuff move", () => {
+    // Cultist buffs (Ritual) on turn 0, so its telegraphed turn-1 move must be an attack.
+    let s = createInitialState({ seed: 1, deck: [], enemyIds: ["cultist"] });
+    expect(s.enemies[0].nextMove.intent).toBe("buff");
+    s = resolveTurn(s); // player ends turn → cultist performs Ritual → telegraphs next
+    expect(s.enemies[0].nextMove.intent).toBe("attack");
+  });
+
+  it("does not force an attack after a defend or attack move", () => {
+    // chooseMove only reacts to buff/debuff; a "defend" lastIntent leaves the
+    // full pool available (so other intents remain reachable).
+    const def = getEnemyDef("redLouse"); // attack | defend
+    let sawNonAttackAfterDefend = false;
+    for (let seed = 0; seed < 40; seed++) {
+      const move = def.pattern({ turn: 5, rng: makeRng(seed), history: ["curl"], lastIntent: "defend" });
+      if (move.intent !== "attack") sawNonAttackAfterDefend = true;
+    }
+    expect(sawNonAttackAfterDefend).toBe(true);
+  });
 });
 
 describe("trigger bus & statuses", () => {

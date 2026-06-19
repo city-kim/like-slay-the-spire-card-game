@@ -402,7 +402,12 @@ function finishEnemyPhase(state: GameState, rng: RNG): GameState {
   const turn = next.turn + 1;
   const enemies = next.enemies.map((enemy) => {
     if (enemy.hp <= 0) return enemy;
-    const move = getEnemyDef(enemy.defId).pattern({ turn, rng, history: enemy.history });
+    const move = getEnemyDef(enemy.defId).pattern({
+      turn,
+      rng,
+      history: enemy.history,
+      lastIntent: enemy.nextMove.intent, // the move it just performed this turn
+    });
     return { ...enemy, block: 0, nextMove: move, history: [...enemy.history, move.id].slice(-6) };
   });
   next = {
