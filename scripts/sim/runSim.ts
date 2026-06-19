@@ -13,6 +13,7 @@ import {
   createInitialState,
   reduce,
   getCardDef,
+  isPlayable,
   makeRng,
   type GameState,
   type StartOptions,
@@ -32,7 +33,7 @@ const greedyPolicy: Policy = (state) => {
   // Prefer attacks while we can afford them.
   const attack = state.hand.find((c) => {
     const def = getCardDef(c.defId);
-    return def.type === "attack" && state.player.energy >= def.cost;
+    return def.type === "attack" && isPlayable(def, state.player.energy);
   });
   if (attack) {
     return { type: "playCard", uid: attack.uid, targetIndex: Math.max(0, livingEnemy) };
@@ -41,7 +42,7 @@ const greedyPolicy: Policy = (state) => {
   // Then play affordable non-attacks (block etc.).
   const other = state.hand.find((c) => {
     const def = getCardDef(c.defId);
-    return def.type !== "attack" && state.player.energy >= def.cost;
+    return def.type !== "attack" && isPlayable(def, state.player.energy);
   });
   if (other) {
     const def = getCardDef(other.defId);
@@ -63,8 +64,9 @@ function runOne(opts: StartOptions, policy: Policy, maxSteps = 1000): RunResult 
   const startHp = state.player.hp;
   let steps = 0;
 
-  while (state.phase === "player" && steps++ < maxSteps) {
-    state = reduce(state, policy(state), rng);
+  while ((state.phase === "player" || state.phase === "enemy") && steps++ < maxSteps) {
+    // Drive the stepped enemy phase to completion; otherwise act on the policy.
+    state = state.phase === "enemy" ? reduce(state, { type: "enemyAct" }, rng) : reduce(state, policy(state), rng);
   }
 
   return {

@@ -1,8 +1,11 @@
-import { DEMO_DECK } from "../engine";
+import { useCallback } from "react";
+import { type GameAction } from "../engine";
 import { useTranslation } from "../i18n";
-import { relicImage } from "./assetImages";
+import { characterImage, relicImage } from "./assetImages";
 import logoUrl from "../assets/ui/logo.png";
+import playerUrl from "../assets/ui/player.png";
 import { useRun } from "./useRun";
+import { CharacterSelect } from "./CharacterSelect";
 import { CombatView } from "./CombatView";
 import { MapView } from "./MapView";
 import { RewardView } from "./RewardView";
@@ -10,17 +13,20 @@ import { RestView } from "./RestView";
 import { ShopView } from "./ShopView";
 import { EventView } from "./EventView";
 import { PotionBar } from "./PotionBar";
-import { SeedControl } from "./SeedControl";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 
 export function RunScreen() {
   const { t } = useTranslation();
-  const { state, dispatch, restart } = useRun({
-    seed: 1,
-    deck: DEMO_DECK,
-    maxHp: 80,
-    randomRelics: 1, // one random starting relic
-  });
+  const { state, dispatch, start, restart } = useRun();
+
+  // Stable identity so CombatView's enemy-phase auto-advance effect is reliable.
+  const onCombatAction = useCallback(
+    (action: GameAction) => dispatch({ type: "combat", action }),
+    [dispatch],
+  );
+
+  // No active run → character select.
+  if (!state) return <CharacterSelect onStart={start} />;
 
   const { player } = state;
 
@@ -32,12 +38,11 @@ export function RunScreen() {
           <span>❤ {player.hp}/{player.maxHp}</span>
           <span>💰 {player.gold}</span>
           <span>🎴 {player.deck.length}</span>
+          <span>🎲 {state.seed}</span>
         </div>
         <LanguageSwitcher />
         <button onClick={() => restart()}>{t("run.restart")}</button>
       </header>
-
-      <SeedControl seed={state.seed} onStart={(seed) => restart(seed)} />
 
       <div className="run-belts">
         {player.relics.length > 0 && (
@@ -65,7 +70,11 @@ export function RunScreen() {
       )}
 
       {state.phase === "combat" && state.combat && (
-        <CombatView state={state.combat} onAction={(action) => dispatch({ type: "combat", action })} />
+        <CombatView
+          state={state.combat}
+          onAction={onCombatAction}
+          portraitUrl={(state.character && characterImage(state.character)) || playerUrl}
+        />
       )}
 
       {state.phase === "reward" && state.reward && (

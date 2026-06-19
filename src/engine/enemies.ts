@@ -104,6 +104,102 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
     },
   },
 
+  acidSlime: {
+    id: "acidSlime",
+    maxHp: 28,
+    pattern: (ctx) =>
+      chooseMove(ctx, [
+        {
+          weight: 5,
+          move: {
+            id: "corrode",
+            intent: "attack",
+            displayDamage: 7,
+            effects: [{ kind: "damage", amount: 7 }, { kind: "applyStatus", status: "frail", amount: 1, target: "enemy" }],
+          },
+        },
+        { weight: 5, move: { id: "tackle", intent: "attack", displayDamage: 10, effects: [{ kind: "damage", amount: 10 }] } },
+      ]),
+  },
+
+  batSwarm: {
+    id: "batSwarm",
+    maxHp: 18,
+    pattern: (ctx) =>
+      chooseMove(ctx, [
+        {
+          weight: 5,
+          move: {
+            id: "swarm",
+            intent: "attack",
+            displayDamage: 6,
+            effects: [{ kind: "damage", amount: 2 }, { kind: "damage", amount: 2 }, { kind: "damage", amount: 2 }],
+          },
+        },
+        {
+          weight: 5,
+          move: {
+            id: "screech",
+            intent: "attack",
+            displayDamage: 4,
+            effects: [{ kind: "damage", amount: 4 }, { kind: "applyStatus", status: "weak", amount: 1, target: "enemy" }],
+          },
+        },
+      ]),
+  },
+
+  stoneGolem: {
+    id: "stoneGolem",
+    maxHp: 55,
+    pattern: (ctx) =>
+      chooseMove(ctx, [
+        { weight: 5, move: { id: "boulder", intent: "attack", displayDamage: 18, effects: [{ kind: "damage", amount: 18 }] } },
+        { weight: 4, move: { id: "harden", intent: "defend", effects: [{ kind: "block", amount: 12 }] } },
+      ]),
+  },
+
+  goblin: {
+    id: "goblin",
+    maxHp: 16,
+    pattern: (ctx) =>
+      chooseMove(ctx, [
+        { weight: 6, move: { id: "slash", intent: "attack", displayDamage: 7, effects: [{ kind: "damage", amount: 7 }] } },
+        {
+          weight: 4,
+          move: {
+            id: "lowBlow",
+            intent: "attack",
+            displayDamage: 4,
+            effects: [{ kind: "damage", amount: 4 }, { kind: "applyStatus", status: "weak", amount: 1, target: "enemy" }],
+          },
+        },
+      ]),
+  },
+
+  looter: {
+    id: "looter",
+    maxHp: 20,
+    pattern: (ctx) =>
+      chooseMove(ctx, [
+        { weight: 6, move: { id: "mug", intent: "attack", displayDamage: 9, effects: [{ kind: "damage", amount: 9 }] } },
+        { weight: 3, move: { id: "smokeBomb", intent: "defend", effects: [{ kind: "block", amount: 6 }] } },
+      ]),
+  },
+
+  madDog: {
+    id: "madDog",
+    maxHp: 14,
+    pattern: (ctx) => {
+      if (ctx.turn === 0) {
+        return { id: "frenzy", intent: "buff", effects: [{ kind: "applyStatus", status: "strength", amount: 2, target: "self" }] };
+      }
+      return chooseMove(ctx, [
+        { weight: 7, move: { id: "bite", intent: "attack", displayDamage: 6, effects: [{ kind: "damage", amount: 6 }] } },
+        { weight: 3, move: { id: "frenzy", intent: "buff", effects: [{ kind: "applyStatus", status: "strength", amount: 2, target: "self" }] } },
+      ]);
+    },
+  },
+
   theGuardian: {
     id: "theGuardian",
     maxHp: 100,
@@ -131,6 +227,29 @@ export const ENEMY_DEFS: Record<string, EnemyDef> = {
             effects: [{ kind: "damage", amount: 11 }, { kind: "applyStatus", status: "vulnerable", amount: 1, target: "enemy" }],
           },
         },
+      ]);
+    },
+  },
+
+  slimeKing: {
+    id: "slimeKing",
+    maxHp: 120,
+    pattern: (ctx) => {
+      if (ctx.turn === 0) {
+        return { id: "slam", intent: "attack", displayDamage: 20, effects: [{ kind: "damage", amount: 20 }] };
+      }
+      return chooseMove(ctx, [
+        { weight: 4, move: { id: "slam", intent: "attack", displayDamage: 20, effects: [{ kind: "damage", amount: 20 }] } },
+        {
+          weight: 3,
+          move: {
+            id: "splatter",
+            intent: "attack",
+            displayDamage: 12,
+            effects: [{ kind: "damage", amount: 12 }, { kind: "applyStatus", status: "frail", amount: 1, target: "enemy" }],
+          },
+        },
+        { weight: 3, move: { id: "prepare", intent: "defend", effects: [{ kind: "block", amount: 15 }] } },
       ]);
     },
   },

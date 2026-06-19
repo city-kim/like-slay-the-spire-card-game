@@ -20,7 +20,11 @@ const potions = indexById(
 const nodes = indexById(
   import.meta.glob("../assets/nodes/*.png", { eager: true, import: "default" }) as Record<string, string>,
 );
+const characters = indexById(
+  import.meta.glob("../assets/characters/*.png", { eager: true, import: "default" }) as Record<string, string>,
+);
 
 export const relicImage = (id: string): string | undefined => relics[id];
 export const potionImage = (id: string): string | undefined => potions[id];
 export const nodeImage = (type: string): string | undefined => nodes[type];
+export const characterImage = (id: string): string | undefined => characters[id];

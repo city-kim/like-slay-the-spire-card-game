@@ -1,47 +1,48 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { makeRng, restoreRng, type RNG } from "../engine";
-import { createRun, runReduce, type RunAction, type RunOptions, type RunState } from "../run";
+import { createRun, runReduce, type RunAction, type RunState } from "../run";
 import { clearRun, loadRun, saveRun } from "./runStorage";
 
 /**
- * React binding around the pure run reducer, with localStorage persistence.
- * On mount it resumes a saved run (restoring the rng's exact state) if one
- * exists; every state change is auto-saved, so a refresh continues the run.
+ * React binding around the pure run reducer, with localStorage persistence and
+ * a character-select gate. `state` is null until a run is started (or resumed),
+ * so the UI can show character selection first. A saved run auto-resumes
+ * (restoring the rng's exact state) so a refresh continues mid-run.
  */
-export function useRun(opts: RunOptions = {}) {
-  const seed = opts.seed ?? 1;
+export function useRun() {
   const rngRef = useRef<RNG | null>(null);
 
-  const [state, setState] = useState<RunState>(() => {
+  const [state, setState] = useState<RunState | null>(() => {
     const saved = loadRun();
     if (saved) {
       rngRef.current = restoreRng(saved.rngState);
       return saved.run;
     }
-    rngRef.current = makeRng(seed * 7 + 1);
-    return createRun(opts);
+    return null; // no run yet → character select
   });
 
   // Persist after every change, including the rng's advanced state.
   useEffect(() => {
-    saveRun(state, rngRef.current!.state());
+    if (state) saveRun(state, rngRef.current!.state());
   }, [state]);
 
   const dispatch = useCallback((action: RunAction) => {
-    setState((prev) => runReduce(prev, action, rngRef.current!));
+    setState((prev) => (prev ? runReduce(prev, action, rngRef.current!) : prev));
   }, []);
 
-  /** Start a fresh run. With a seed it's reproducible; without, a random one. */
-  const restart = useCallback(
-    (seedOverride?: number) => {
-      const s = seedOverride ?? Math.floor(Math.random() * 1_000_000_000);
-      clearRun();
-      rngRef.current = makeRng(s * 7 + 1);
-      setState(createRun({ ...opts, seed: s }));
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
+  /** Begin a run with the chosen character. A given seed is reproducible. */
+  const start = useCallback((character: string, seed?: number) => {
+    const s = seed ?? Math.floor(Math.random() * 1_000_000_000);
+    rngRef.current = makeRng(s * 7 + 1);
+    setState(createRun({ seed: s, character }));
+  }, []);
 
-  return useMemo(() => ({ state, dispatch, restart }), [state, dispatch, restart]);
+  /** Abandon the run and return to character select. */
+  const restart = useCallback(() => {
+    clearRun();
+    rngRef.current = null;
+    setState(null);
+  }, []);
+
+  return useMemo(() => ({ state, dispatch, start, restart }), [state, dispatch, start, restart]);
 }

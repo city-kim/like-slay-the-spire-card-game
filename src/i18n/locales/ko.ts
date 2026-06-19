@@ -26,6 +26,7 @@ export const ko = {
     potions: "포션",
     emptySlot: "빈 슬롯",
     use: "사용",
+    keyHint: "단축키: 1~9 카드 사용 · E 턴 종료 · Esc 타겟 취소",
   },
   intent: {
     attack: "⚔ {dmg}",
@@ -39,6 +40,15 @@ export const ko = {
     restart: "새 런",
     victory: "런 클리어! 🎉",
     gameOver: "패배… 런 종료",
+  },
+  select: {
+    title: "캐릭터 선택",
+    hint: "시드를 입력하면 같은 맵을 다시 플레이할 수 있어요 (선택).",
+  },
+  character: {
+    warrior: { name: "전사", desc: "튼튼한 체력과 힘. 정공법으로 밀어붙인다." },
+    rogue: { name: "도적", desc: "체력은 낮지만 독과 연속 공격에 강하다." },
+    mage: { name: "마법사", desc: "광역 공격과 방어로 다수의 적을 상대한다." },
   },
   seed: {
     placeholder: "시드 입력",
@@ -78,6 +88,18 @@ export const ko = {
       body: "불길한 기운이 감도는 책이다.",
       choices: { 0: "읽는다 (체력 6, 최대 체력 +8)", 1: "태운다" },
       results: { 0: "금단의 지식이 몸을 단련시켰다.", 1: "책을 태우자 금화가 남았다." },
+    },
+    deadAdventurer: {
+      title: "죽은 모험가",
+      body: "쓰러진 모험가의 시신이 보인다. 주머니가 불룩하다… 무언가 꿈틀거린다.",
+      choices: { 0: "시신을 뒤진다 (위험!)", 1: "예를 갖춰 지나간다" },
+      results: { 0: "무언가 튀어나왔다!", 1: "조용히 명복을 빌었다." },
+    },
+    goblinAmbush: {
+      title: "고블린 매복",
+      body: "좁은 길목에서 고블린 무리가 튀어나온다!",
+      choices: { 0: "맞서 싸운다", 1: "도망친다 (체력 8 잃기)" },
+      results: { 0: "전투!", 1: "도망치다 부상을 입었다." },
     },
   },
   shop: {
@@ -161,6 +183,8 @@ export const ko = {
     impervious: { name: "철벽", description: "방어도 30을 얻습니다. 소멸." },
     reaper: { name: "사신", description: "모든 적에게 10의 피해를 주고 체력 6을 회복합니다. 소멸." },
     offering: { name: "제물", description: "에너지 2를 얻고 카드 3장을 뽑습니다. 소멸." },
+    whirlwind: { name: "회오리바람", description: "에너지를 모두 소모합니다. 모든 적에게 5의 피해를 X번 줍니다." },
+    skewer: { name: "꼬치꿰기", description: "에너지를 모두 소모합니다. 7의 피해를 X번 줍니다." },
     jab: { name: "잽", description: "3의 피해를 줍니다." },
     swiftStrike: { name: "빠른 일격", description: "4의 피해를 줍니다." },
     throwingKnife: { name: "투척 단검", description: "5의 피해를 줍니다." },
@@ -259,7 +283,14 @@ export const ko = {
     spikeSlime: { name: "가시 슬라임" },
     redLouse: { name: "붉은 진드기" },
     fungiBeast: { name: "균사 야수" },
+    acidSlime: { name: "산성 슬라임" },
+    batSwarm: { name: "박쥐 떼" },
+    stoneGolem: { name: "돌 골렘" },
+    goblin: { name: "고블린" },
+    looter: { name: "약탈자" },
+    madDog: { name: "광견" },
     theGuardian: { name: "수호자" },
+    slimeKing: { name: "슬라임 왕" },
   },
   potion: {
     healingPotion: { name: "치유 물약", description: "체력 15를 회복합니다." },

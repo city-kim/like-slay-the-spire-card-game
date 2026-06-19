@@ -11,7 +11,7 @@ export function CardFace({ defId }: { defId: string }) {
   const art = cardImage(defId);
   return (
     <>
-      <div className="card-cost">{def.cost}</div>
+      <div className="card-cost">{def.cost === "x" ? "X" : def.cost}</div>
       {art ? (
         <img className="card-art" src={art} alt="" loading="lazy" />
       ) : (

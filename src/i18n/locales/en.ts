@@ -25,6 +25,7 @@ export const en: Resources = {
     potions: "Potions",
     emptySlot: "Empty",
     use: "Use",
+    keyHint: "Keys: 1–9 play card · E end turn · Esc cancel target",
   },
   intent: {
     attack: "⚔ {dmg}",
@@ -38,6 +39,15 @@ export const en: Resources = {
     restart: "New run",
     victory: "Run cleared! 🎉",
     gameOver: "Defeated… run over",
+  },
+  select: {
+    title: "Choose your character",
+    hint: "Enter a seed to replay the same map (optional).",
+  },
+  character: {
+    warrior: { name: "Warrior", desc: "High HP and Strength. Wins through brute force." },
+    rogue: { name: "Rogue", desc: "Low HP but excels with poison and repeated strikes." },
+    mage: { name: "Mage", desc: "AoE attacks and block to handle many enemies." },
   },
   seed: {
     placeholder: "Enter seed",
@@ -77,6 +87,18 @@ export const en: Resources = {
       body: "An ominous book radiates dark energy.",
       choices: { 0: "Read it (lose 6 HP, +8 Max HP)", 1: "Burn it" },
       results: { 0: "Forbidden knowledge hardens your body.", 1: "Burning it left some gold behind." },
+    },
+    deadAdventurer: {
+      title: "Dead Adventurer",
+      body: "A fallen adventurer's corpse lies here, pouch bulging… something stirs.",
+      choices: { 0: "Search the body (risky!)", 1: "Pay your respects and leave" },
+      results: { 0: "Something lunged out!", 1: "You quietly moved on." },
+    },
+    goblinAmbush: {
+      title: "Goblin Ambush",
+      body: "Goblins leap out from a narrow pass!",
+      choices: { 0: "Stand and fight", 1: "Flee (lose 8 HP)" },
+      results: { 0: "Fight!", 1: "You fled and took a hit." },
     },
   },
   shop: {
@@ -160,6 +182,8 @@ export const en: Resources = {
     impervious: { name: "Impervious", description: "Gain 30 Block. Exhaust." },
     reaper: { name: "Reaper", description: "Deal 10 damage to ALL enemies. Heal 6 HP. Exhaust." },
     offering: { name: "Offering", description: "Gain 2 Energy. Draw 3 cards. Exhaust." },
+    whirlwind: { name: "Whirlwind", description: "Spend all energy. Deal 5 damage to ALL enemies X times." },
+    skewer: { name: "Skewer", description: "Spend all energy. Deal 7 damage X times." },
     jab: { name: "Jab", description: "Deal 3 damage." },
     swiftStrike: { name: "Swift Strike", description: "Deal 4 damage." },
     throwingKnife: { name: "Throwing Knife", description: "Deal 5 damage." },
@@ -258,7 +282,14 @@ export const en: Resources = {
     spikeSlime: { name: "Spike Slime" },
     redLouse: { name: "Red Louse" },
     fungiBeast: { name: "Fungi Beast" },
+    acidSlime: { name: "Acid Slime" },
+    batSwarm: { name: "Bat Swarm" },
+    stoneGolem: { name: "Stone Golem" },
+    goblin: { name: "Goblin" },
+    looter: { name: "Looter" },
+    madDog: { name: "Mad Dog" },
     theGuardian: { name: "The Guardian" },
+    slimeKing: { name: "Slime King" },
   },
   potion: {
     healingPotion: { name: "Healing Potion", description: "Restore 15 HP." },

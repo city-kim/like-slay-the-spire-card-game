@@ -1,13 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { createInitialState, reduce } from "./combat";
 import { makeRng } from "./rng";
-import { cardsByRarity, getCardDef, rarityOf, upgradedId } from "./cards";
+import { cardsByRarity, getCardDef, isPlayable, rarityOf, upgradedId } from "./cards";
 import { getEnemyDef } from "./enemies";
 
 const rng = () => makeRng(123);
 
 function findCard(state: ReturnType<typeof createInitialState>, defId: string) {
   return state.hand.find((c) => c.defId === defId);
+}
+
+/** Ends the player's turn and drains the (now stepped) enemy phase so the
+ *  state returns to the player's next turn (or a combat-end state). */
+function resolveTurn(state: ReturnType<typeof createInitialState>) {
+  const r = makeRng(123);
+  let s = reduce(state, { type: "endTurn" }, r);
+  let guard = 0;
+  while (s.phase === "enemy" && guard++ < 50) s = reduce(s, { type: "enemyAct" }, r);
+  return s;
 }
 
 describe("combat engine", () => {
@@ -62,10 +72,15 @@ describe("combat engine", () => {
     expect(blocked.hand).toContainEqual(second); // still in hand
   });
 
-  it("enemy attacks on end turn and a fresh hand is drawn", () => {
+  it("enemy attacks (stepped) over the enemy phase, then a fresh hand is drawn", () => {
     const s = createInitialState({ seed: 1, enemyIds: ["jawWorm"] });
     const hpBefore = s.player.hp;
-    const after = reduce(s, { type: "endTurn" }, rng());
+    // endTurn enters the enemy phase; the enemy hasn't acted yet.
+    const enemyPhase = reduce(s, { type: "endTurn" }, rng());
+    expect(enemyPhase.phase).toBe("enemy");
+    expect(enemyPhase.player.hp).toBe(hpBefore); // not hit yet
+    // Drain the enemy phase.
+    const after = resolveTurn(s);
     expect(after.phase).toBe("player");
     expect(after.turn).toBe(1);
     expect(after.hand).toHaveLength(5);
@@ -74,17 +89,35 @@ describe("combat engine", () => {
     expect(after.player.hp).toBe(hpBefore - 11);
   });
 
+  it("enemies act one at a time, in order", () => {
+    const s = createInitialState({ seed: 1, enemyIds: ["spikeSlime", "jawWorm"] });
+    const hpStart = s.player.hp;
+    const e1 = reduce(s, { type: "endTurn" }, rng());
+    expect(e1.phase).toBe("enemy");
+    expect(e1.enemyQueue).toEqual([0, 1]);
+    // First enemyAct resolves enemy 0 only; one enemy still queued.
+    const e2 = reduce(e1, { type: "enemyAct" }, rng());
+    expect(e2.enemyQueue).toEqual([1]);
+    const hpAfterFirst = e2.player.hp;
+    expect(hpAfterFirst).toBeLessThanOrEqual(hpStart);
+    // Second enemyAct resolves enemy 1 and wraps up to the player's turn.
+    const e3 = reduce(e2, { type: "enemyAct" }, rng());
+    expect(e3.phase).toBe("player");
+  });
+
   it("reaches a win state when the enemy dies", () => {
     const s = createInitialState({ seed: 1, deck: Array(40).fill("strike"), enemyIds: ["cultist"] });
     let state = s;
     let guard = 0;
-    while (state.phase === "player" && guard++ < 200) {
-      const card = state.hand.find((c) => c.defId === "strike" && state.player.energy >= getCardDef("strike").cost);
-      if (card) {
-        state = reduce(state, { type: "playCard", uid: card.uid, targetIndex: 0 }, rng());
-      } else {
-        state = reduce(state, { type: "endTurn" }, rng());
+    while (!["won", "lost"].includes(state.phase) && guard++ < 500) {
+      if (state.phase === "enemy") {
+        state = reduce(state, { type: "enemyAct" }, rng());
+        continue;
       }
+      const card = state.hand.find((c) => c.defId === "strike" && isPlayable(getCardDef("strike"), state.player.energy));
+      state = card
+        ? reduce(state, { type: "playCard", uid: card.uid, targetIndex: 0 }, rng())
+        : reduce(state, { type: "endTurn" }, rng());
     }
     expect(["won", "lost"]).toContain(state.phase);
   });
@@ -129,7 +162,7 @@ describe("trigger bus & statuses", () => {
     const bash = findCard(s, "bash")!;
     let after = reduce(s, { type: "playCard", uid: bash.uid, targetIndex: 0 }, rng());
     expect(after.enemies[0].statuses.vulnerable).toBe(2);
-    after = reduce(after, { type: "endTurn" }, rng());
+    after = resolveTurn(after);
     expect(after.enemies[0].statuses.vulnerable).toBe(1);
   });
 
@@ -139,7 +172,7 @@ describe("trigger bus & statuses", () => {
     let after = reduce(s, { type: "playCard", uid: df.uid }, rng());
     expect(after.player.statuses.demonForm).toBe(2);
     expect(after.player.statuses.strength ?? 0).toBe(0); // not yet
-    after = reduce(after, { type: "endTurn" }, rng());
+    after = resolveTurn(after);
     // Next player turn started -> +2 Strength from Demon Form.
     expect(after.player.statuses.strength).toBe(2);
     expect(after.player.statuses.demonForm).toBe(2); // persists (no decay)
@@ -215,6 +248,16 @@ describe("card keywords", () => {
     expect(after.enemies[0].hp).toBe(42 - 9); // Strike+ is 9, base Strike is 6
   });
 
+  it("an X-cost card spends all energy and repeats its effect X times", () => {
+    // Player has 3 energy. Skewer: deal 7 × X. With 3 energy → 21 to the enemy.
+    const s = createInitialState({ seed: 1, deck: ["skewer"], enemyIds: ["jawWorm"] });
+    const skewer = s.hand.find((c) => c.defId === "skewer")!;
+    expect(isPlayable(getCardDef("skewer"), s.player.energy)).toBe(true);
+    const after = reduce(s, { type: "playCard", uid: skewer.uid, targetIndex: 0 }, rng());
+    expect(after.player.energy).toBe(0); // all spent
+    expect(after.enemies[0].hp).toBe(42 - 7 * 3);
+  });
+
   it("Twin Strike deals two separate hits, each boosted by Strength", () => {
     // Give Strength via Vajra relic, then Twin Strike: (5+1) twice = 12.
     const s = createInitialState({ seed: 1, deck: ["twinStrike"], enemyIds: ["jawWorm"], relics: ["vajra"] });
@@ -240,7 +283,7 @@ describe("relics", () => {
   it("Mercury Hourglass deals 3 to all enemies each turn start", () => {
     const s = createInitialState({ seed: 1, enemyIds: ["jawWorm"], relics: ["mercuryHourglass"] });
     expect(s.enemies[0].hp).toBe(42 - 3); // fired on turn 0
-    const after = reduce(s, { type: "endTurn" }, rng());
+    const after = resolveTurn(s);
     expect(after.enemies[0].hp).toBe(42 - 3 - 3); // fired again on turn 1 start
   });
 

@@ -19,6 +19,9 @@ export type RunEffect =
 
 export interface EventChoice {
   effects: RunEffect[];
+  /** If set, choosing this option starts a fight with these enemies (after the
+   *  effects apply). Winning yields a normal post-combat reward. */
+  fight?: string[];
 }
 export interface EventDef {
   id: string;
@@ -53,6 +56,23 @@ export const EVENT_DEFS: Record<string, EventDef> = {
     choices: [
       { effects: [{ kind: "loseHp", amount: 6 }, { kind: "maxHpUp", amount: 8 }] }, // read
       { effects: [{ kind: "gainGold", amount: 15 }] }, // burn
+    ],
+  },
+
+  // ── Combat events (a choice starts a fight) ──
+  deadAdventurer: {
+    id: "deadAdventurer",
+    choices: [
+      // Loot the corpse — but something stirs. Win → normal reward.
+      { effects: [{ kind: "gainGold", amount: 30 }], fight: ["batSwarm", "redLouse"] },
+      { effects: [] }, // leave
+    ],
+  },
+  goblinAmbush: {
+    id: "goblinAmbush",
+    choices: [
+      { effects: [], fight: ["goblin", "goblin"] }, // stand and fight
+      { effects: [{ kind: "loseHp", amount: 8 }] }, // flee (take a hit)
     ],
   },
 };

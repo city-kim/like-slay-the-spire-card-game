@@ -50,6 +50,35 @@ body {
 }
 .seed-start { font-size: 13px; padding: 6px 10px; }
 
+/* ── Character select ── */
+.char-select {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.char-select .topbar { width: 100%; }
+.char-select h2 { margin: 0; color: var(--accent); }
+.char-cards { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
+.char-card {
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  text-align: center;
+}
+.char-card:hover { transform: translateY(-6px); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.5); }
+.char-portrait { width: 120px; height: 120px; object-fit: contain; }
+.char-name { font-weight: 700; font-size: 18px; color: var(--accent); }
+.char-desc { font-size: 13px; color: var(--muted); min-height: 36px; }
+.char-stats { display: flex; gap: 10px; font-size: 13px; flex-wrap: wrap; justify-content: center; }
+.char-hint { color: var(--muted); font-size: 13px; }
+
 .combat {
   display: flex;
   flex-direction: column;
@@ -256,6 +285,27 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   justify-content: center;
   min-height: 120px;
 }
+.enemy-slot { position: relative; display: flex; }
+
+/* Floating damage / heal numbers. */
+.dmg-pop {
+  position: absolute;
+  top: 28%;
+  left: 50%;
+  font-weight: 800;
+  font-size: 26px;
+  color: #ff6b6b;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.95);
+  pointer-events: none;
+  z-index: 5;
+  animation: floatUp 0.9s ease-out forwards;
+}
+.dmg-pop.heal { color: #6be36b; }
+@keyframes floatUp {
+  0% { opacity: 0; transform: translate(-50%, 4px) scale(0.7); }
+  20% { opacity: 1; transform: translate(-50%, -6px) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -52px) scale(1); }
+}
 .enemy {
   position: relative;
   background-color: var(--panel);
@@ -332,6 +382,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   align-items: center;
 }
 .player {
+  position: relative;
   background: var(--panel);
   border-radius: 10px;
   padding: 12px;
@@ -374,6 +425,22 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .card-skill { border-color: #3b86b2; }
 .card-power { border-color: #9b3bb2; }
 .card.selected { outline: 2px solid var(--accent); }
+.card-key {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #15121d;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.key-hint { text-align: center; color: var(--muted); font-size: 12px; }
 .card-cost {
   position: absolute;
   top: -8px;
@@ -429,3 +496,30 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .log { color: var(--muted); font-size: 13px; }
 .log ul { margin: 6px 0; padding-left: 18px; }
+
+/* ── Responsive (mobile / narrow viewports) ── */
+@media (max-width: 680px) {
+  .run, .char-select { padding: 10px; }
+  .topbar { flex-wrap: wrap; gap: 8px; }
+  .topbar h1 { font-size: 18px; }
+  .run-stats { gap: 10px; font-size: 13px; flex-wrap: wrap; }
+
+  .enemies { gap: 10px; flex-wrap: wrap; }
+  .enemy { width: 150px; min-height: 150px; padding: 8px; }
+
+  .player-area { flex-direction: column; align-items: stretch; gap: 10px; }
+  .player-portrait { width: 88px; height: 88px; }
+  .end-turn { width: 100%; }
+
+  .hand { gap: 6px; }
+  .card { width: 96px; height: 142px; gap: 4px; }
+  .card-art { height: 60px; }
+  .card-name { font-size: 12px; }
+  .card-desc { font-size: 10px; }
+
+  .char-cards { gap: 12px; }
+  .char-card { width: 100%; max-width: 340px; }
+
+  .map-node { width: 92px; }
+  .map-node .node-img { width: 44px; height: 44px; }
+}

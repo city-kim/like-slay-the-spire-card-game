@@ -54,11 +54,15 @@ export type Effect =
 export interface CardDef {
   id: string;
   type: CardType;
-  cost: number;
+  /** Energy cost. "x" spends ALL current energy; `xEffects` then fire that many
+   *  times (e.g. Whirlwind). */
+  cost: number | "x";
   target: TargetType;
   /** Card rarity; drives reward weighting. Defaults to "common" if unset. */
   rarity?: CardRarity;
   effects: Effect[];
+  /** For cost "x" cards: these effects resolve once per energy spent. */
+  xEffects?: Effect[];
   /** When played, this card is removed from the deck for the rest of combat. */
   exhaust?: boolean;
   /** Single-target attacks need a chosen enemy; AoE cards (target "enemy" +
@@ -161,6 +165,9 @@ export interface GameState {
   hand: CardInstance[];
   discardPile: CardInstance[];
   exhaustPile: CardInstance[];
+  /** During the enemy phase, the indices of enemies still waiting to act
+   *  (oldest first). Empty outside the enemy phase. Drained by `enemyAct`. */
+  enemyQueue: number[];
   /** Per-combat counters keyed by relic/power id (e.g. Shuriken's attack tally). */
   relicCounters: Record<string, number>;
   /** Append-only combat log of translation keys; rendered by the UI in-locale. */
@@ -170,4 +177,5 @@ export interface GameState {
 /** Player-issued actions the reducer understands. */
 export type GameAction =
   | { type: "playCard"; uid: string; targetIndex?: number }
-  | { type: "endTurn" };
+  | { type: "endTurn" }
+  | { type: "enemyAct" };

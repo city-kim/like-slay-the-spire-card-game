@@ -26,9 +26,10 @@ const MAX_HAND = 10;
 const START_ENERGY = 3;
 const START_HP = 80;
 
-let uidCounter = 0;
-function makeCardInstance(defId: string): CardInstance {
-  return { uid: `c${uidCounter++}`, defId };
+// Card uids are index-based per combat (not a global counter) so the same
+// (seed, deck) yields a byte-identical state — clean replay / determinism.
+function buildDeck(cardIds: string[]): CardInstance[] {
+  return cardIds.map((defId, i) => ({ uid: `c${i}`, defId }));
 }
 
 /** Builds a `{ tkey }` reference to an enemy's localized name. */
@@ -55,7 +56,7 @@ export function createInitialState(opts: StartOptions = {}): GameState {
   const maxHp = opts.maxHp ?? START_HP;
   const hp = Math.min(opts.hp ?? maxHp, maxHp);
 
-  const deck = (opts.deck ?? STARTER_DECK).map(makeCardInstance);
+  const deck = buildDeck(opts.deck ?? STARTER_DECK);
   const enemyIds = opts.enemyIds ?? ["jawWorm"];
 
   // Innate cards open in hand; the rest form the draw pile. (Shuffle first so
@@ -83,6 +84,7 @@ export function createInitialState(opts: StartOptions = {}): GameState {
     hand: innate.slice(0, MAX_HAND),
     discardPile: [],
     exhaustPile: [],
+    enemyQueue: [],
     relicCounters: {},
     log: [{ key: "log.combatStart" }],
   };
@@ -277,13 +279,14 @@ function applyStatusEffect(
  * Always returns a new GameState; never mutates the input.
  */
 export function reduce(state: GameState, action: GameAction, rng: RNG): GameState {
-  if (state.phase !== "player") return state;
-
   switch (action.type) {
     case "playCard":
-      return playCard(state, action.uid, action.targetIndex, rng);
+      return state.phase === "player" ? playCard(state, action.uid, action.targetIndex, rng) : state;
     case "endTurn":
-      return endTurn(state, rng);
+      return state.phase === "player" ? endTurn(state, rng) : state;
+    case "enemyAct":
+      // One enemy acts per call (the UI staggers these for readability).
+      return state.phase === "enemy" ? enemyAct(state, rng) : state;
   }
 }
 
@@ -308,19 +311,26 @@ function playCard(state: GameState, uid: string, targetIndex: number | undefined
   const def = getCardDef(card.defId);
 
   const cardName = { tkey: `card.${def.id}.name` };
-  if (state.player.energy < def.cost) {
+  if (def.cost !== "x" && state.player.energy < def.cost) {
     return { ...state, log: [...state.log, { key: "log.notEnoughEnergy", params: { card: cardName } }] };
   }
+
+  // X cards spend ALL energy; x = the amount spent (their xEffects fire x times).
+  const spent = def.cost === "x" ? state.player.energy : def.cost;
+  const x = def.cost === "x" ? state.player.energy : 0;
 
   // Spend energy and remove the card from hand first.
   let next: GameState = {
     ...state,
-    player: { ...state.player, energy: state.player.energy - def.cost },
+    player: { ...state.player, energy: state.player.energy - spent },
     hand: state.hand.filter((c) => c.uid !== uid),
     log: [...state.log, { key: "log.playCard", params: { card: cardName } }],
   };
 
   next = resolveEffects(next, def.effects, "player", targetIndex, rng);
+  for (let i = 0; i < x; i++) {
+    next = resolveEffects(next, def.xEffects ?? [], "player", targetIndex, rng);
+  }
 
   // Send the spent card to discard or exhaust.
   next = def.exhaust
@@ -331,25 +341,6 @@ function playCard(state: GameState, uid: string, targetIndex: number | undefined
   next = relicOnCardPlayed(next, def, rng);
 
   return checkCombatEnd(next);
-}
-
-/** The whole enemy phase: turn-start triggers, each enemy acts, turn-end decay.
- *  Returns early (phase "won"/"lost") if combat ends partway through. */
-function runEnemyPhase(state: GameState, rng: RNG): GameState {
-  // Enemy turn-start triggers (poison ticks, enemy powers) — may end combat.
-  let next = checkCombatEnd(applyTurnStartTriggers({ ...state, phase: "enemy" }, "enemy"));
-  if (next.phase !== "enemy") return next;
-
-  // Enemies act in order.
-  next.enemies.forEach((enemy, idx) => {
-    if (enemy.hp <= 0) return;
-    next = resolveEffects(next, enemy.nextMove.effects, { enemyIndex: idx }, undefined, rng);
-    next = checkCombatEnd(next);
-  });
-  if (next.phase !== "enemy") return next;
-
-  // Enemy turn-end triggers (decay enemy debuffs, e.g. Vulnerable from Bash).
-  return applyTurnEndTriggers(next, "enemy");
 }
 
 function endTurn(state: GameState, rng: RNG): GameState {
@@ -375,12 +366,40 @@ function endTurn(state: GameState, rng: RNG): GameState {
   // 2. Player turn-end triggers (decay the player's temporary debuffs).
   next = applyTurnEndTriggers(next, "player");
 
-  // 3. Enemy phase (may end combat).
-  next = runEnemyPhase(next, rng);
+  // 3. Enter the enemy phase: turn-start triggers (poison etc.) may end combat.
+  next = checkCombatEnd(applyTurnStartTriggers({ ...next, phase: "enemy" }, "enemy"));
   if (next.phase !== "enemy") return next;
 
-  // 4. Start the next player turn: bump turn, reset block/energy, telegraph each
-  //    enemy's next intent (resetting their block), and draw a fresh hand.
+  // 4. Queue living enemies to act one at a time (driven by `enemyAct`). If the
+  //    queue is empty (no living enemies), wrap up the enemy phase immediately.
+  const queue = next.enemies.map((e, i) => (e.hp > 0 ? i : -1)).filter((i) => i >= 0);
+  next = { ...next, enemyQueue: queue };
+  return queue.length === 0 ? finishEnemyPhase(next, rng) : next;
+}
+
+/** Resolves the next queued enemy's move. When the queue empties, wraps up the
+ *  enemy phase and starts the next player turn. */
+function enemyAct(state: GameState, rng: RNG): GameState {
+  if (state.enemyQueue.length === 0) return finishEnemyPhase(state, rng);
+
+  const [idx, ...rest] = state.enemyQueue;
+  let next: GameState = { ...state, enemyQueue: rest };
+  const enemy = next.enemies[idx];
+  if (enemy && enemy.hp > 0) {
+    next = resolveEffects(next, enemy.nextMove.effects, { enemyIndex: idx }, undefined, rng);
+    next = checkCombatEnd(next);
+  }
+  if (next.phase !== "enemy") return next; // combat ended mid-phase
+  return next.enemyQueue.length === 0 ? finishEnemyPhase(next, rng) : next;
+}
+
+/** Enemy turn-end decay, then set up the next player turn. */
+function finishEnemyPhase(state: GameState, rng: RNG): GameState {
+  // Enemy turn-end triggers (decay enemy debuffs, e.g. Vulnerable from Bash).
+  let next = applyTurnEndTriggers(state, "enemy");
+
+  // Bump the turn, reset block/energy, telegraph each enemy's next intent
+  // (resetting their block), and draw a fresh hand.
   const turn = next.turn + 1;
   const enemies = next.enemies.map((enemy) => {
     if (enemy.hp <= 0) return enemy;
@@ -391,14 +410,15 @@ function endTurn(state: GameState, rng: RNG): GameState {
     ...next,
     turn,
     phase: "player",
+    enemyQueue: [],
     enemies,
     player: { ...next.player, block: 0, energy: next.player.maxEnergy },
     log: [...next.log, { key: "log.turnStart", params: { turn: turn + 1 } }],
   };
   next = drawCards(next, HAND_SIZE, rng);
 
-  // 4a. Player turn-start triggers (poison, powers) then turn-start relics
-  //     (e.g. Mercury Hourglass) — either may end combat.
+  // Player turn-start triggers (poison, powers) then turn-start relics
+  // (e.g. Mercury Hourglass) — either may end combat.
   next = applyTurnStartTriggers(next, "player");
   next = relicOnPlayerTurnStart(next, rng);
   return checkCombatEnd(next);

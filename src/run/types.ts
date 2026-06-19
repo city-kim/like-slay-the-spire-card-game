@@ -80,6 +80,8 @@ export interface Notice {
 
 export interface RunState {
   seed: number;
+  /** Chosen character id (drives the combat portrait, etc.). */
+  character?: string;
   map: RunMap;
   /** Row the player currently sits on (-1 before the first pick). */
   currentRow: number;

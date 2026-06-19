@@ -229,6 +229,26 @@ export const CARD_DEFS: Record<string, CardDef> = {
       { kind: "draw", amount: 3 },
     ],
   },
+  // ── Energy-variable (cost X) cards ──
+  whirlwind: {
+    id: "whirlwind",
+    type: "attack",
+    cost: "x",
+    rarity: "uncommon",
+    target: "enemy",
+    aoe: true,
+    effects: [],
+    xEffects: [{ kind: "damageAll", amount: 5 }], // 5 to all, X times
+  },
+  skewer: {
+    id: "skewer",
+    type: "attack",
+    cost: "x",
+    rarity: "uncommon",
+    target: "enemy",
+    effects: [],
+    xEffects: [{ kind: "damage", amount: 7 }], // 7 to one enemy, X times
+  },
 
   // ════════════════════════════════════════════════════════════════════════
   // Generic / colorless pool (not tied to any class). Effects use existing
@@ -451,6 +471,11 @@ export function getCardDef(id: string): CardDef {
   const def = CARD_DEFS[id];
   if (!def) throw new Error(`Unknown card def: ${id}`);
   return def;
+}
+
+/** Whether a card is playable at the given energy. X cards are always playable. */
+export function isPlayable(def: CardDef, energy: number): boolean {
+  return def.cost === "x" || energy >= def.cost;
 }
 
 /** The upgraded variant of a card, or undefined if it has none / is already `+`. */

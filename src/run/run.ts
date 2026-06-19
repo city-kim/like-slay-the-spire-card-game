@@ -19,6 +19,7 @@ import {
 } from "../engine";
 import { generateMap } from "./map";
 import { applyRunEffects, EVENT_DEFS, pickEventId } from "./events";
+import { getCharacter } from "./characters";
 import type { MapNode, NodeType, RunAction, RunState, ShopState } from "./types";
 
 const START_HP = 80;
@@ -31,6 +32,8 @@ const POTION_REWARD_ELITE = 0.85; // …and after an elite fight
 
 export interface RunOptions {
   seed?: number;
+  /** Playable character id (sets default deck / maxHp / starting relic). */
+  character?: string;
   deck?: string[];
   maxHp?: number;
   relics?: RelicId[];
@@ -52,14 +55,19 @@ function pickStartingRelics(seed: number, count: number): RelicId[] {
 
 export function createRun(opts: RunOptions = {}): RunState {
   const seed = opts.seed ?? 1;
-  const maxHp = opts.maxHp ?? START_HP;
+  const char = opts.character ? getCharacter(opts.character) : undefined;
+  const maxHp = opts.maxHp ?? char?.maxHp ?? START_HP;
+  const deck = opts.deck ?? char?.deck ?? STARTER_DECK;
   const relics = opts.relics
     ? [...opts.relics]
-    : opts.randomRelics
-      ? pickStartingRelics(seed, opts.randomRelics)
-      : [];
+    : char
+      ? [...char.relics]
+      : opts.randomRelics
+        ? pickStartingRelics(seed, opts.randomRelics)
+        : [];
   return {
     seed,
+    character: opts.character,
     map: generateMap(seed),
     currentRow: -1,
     currentNodeId: null,
@@ -68,7 +76,7 @@ export function createRun(opts: RunOptions = {}): RunState {
       hp: maxHp,
       maxHp,
       gold: 0,
-      deck: [...(opts.deck ?? STARTER_DECK)],
+      deck: [...deck],
       relics,
       potions: [...(opts.potions ?? [])].slice(0, MAX_POTIONS),
     },
@@ -121,13 +129,18 @@ function chooseEventOption(run: RunState, index: number, rng: RNG): RunState {
   const choice = def?.choices[index];
   if (!choice) return run;
   let next = applyRunEffects(run, choice.effects, rng);
-  next = {
+
+  // A fight choice starts combat (post-combat reward handled like a normal node).
+  if (choice.fight && choice.fight.length > 0 && next.player.hp > 0) {
+    return { ...next, event: null, notice: null, phase: "combat", combat: startCombatWith(next, choice.fight, rng) };
+  }
+
+  return {
     ...next,
     event: null,
     notice: { key: `event.${def.id}.results.${index}` },
     phase: next.player.hp <= 0 ? "gameOver" : "map",
   };
-  return next;
 }
 
 function usePotion(run: RunState, slot: number, rng: RNG): RunState {
@@ -256,10 +269,15 @@ function removeCard(run: RunState, cardIndex: number): RunState {
 }
 
 function buildCombat(run: RunState, type: NodeType, rng: RNG): GameState {
+  return startCombatWith(run, pickEnemies(type, rng), rng);
+}
+
+/** Builds a combat against a specific enemy list (carrying the run's loadout). */
+function startCombatWith(run: RunState, enemyIds: string[], rng: RNG): GameState {
   return createInitialState({
     seed: rng.int(1_000_000) + 1,
     deck: run.player.deck,
-    enemyIds: pickEnemies(type, rng),
+    enemyIds,
     maxHp: run.player.maxHp,
     hp: run.player.hp,
     relics: run.player.relics,
@@ -267,8 +285,14 @@ function buildCombat(run: RunState, type: NodeType, rng: RNG): GameState {
 }
 
 function pickEnemies(type: NodeType, rng: RNG): string[] {
-  if (type === "boss") return ["theGuardian"];
-  if (type === "elite") return ["cultist", "jawWorm"];
+  if (type === "boss") {
+    const bosses = [["theGuardian"], ["slimeKing"]];
+    return bosses[rng.int(bosses.length)];
+  }
+  if (type === "elite") {
+    const elites = [["cultist", "jawWorm"], ["stoneGolem"], ["acidSlime", "batSwarm"], ["looter", "looter", "looter"]];
+    return elites[rng.int(elites.length)];
+  }
   const combos = [
     ["jawWorm"],
     ["cultist"],
@@ -277,6 +301,12 @@ function pickEnemies(type: NodeType, rng: RNG): string[] {
     ["redLouse", "redLouse"],
     ["fungiBeast", "redLouse"],
     ["fungiBeast"],
+    ["acidSlime"],
+    ["batSwarm", "batSwarm"],
+    ["goblin", "goblin"],
+    ["madDog", "madDog", "madDog"],
+    ["looter", "goblin"],
+    ["acidSlime", "redLouse"],
   ];
   return combos[rng.int(combos.length)];
 }

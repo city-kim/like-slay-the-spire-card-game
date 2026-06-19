@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getCardDef, makeRng, restoreRng, type GameState } from "../engine";
+import { getCardDef, isPlayable, makeRng, restoreRng, type GameState } from "../engine";
 import { availableNodes, createRun, generateMap, runReduce, type RunState } from "./index";
 
 const rng = () => makeRng(999);
@@ -8,13 +8,18 @@ function firstLivingEnemy(c: GameState): number {
   return Math.max(0, c.enemies.findIndex((e) => e.hp > 0));
 }
 
-/** Greedily resolves the active combat: attack while able, else end turn. */
+/** Greedily resolves the active combat: attack while able, else end turn.
+ *  Drives the stepped enemy phase to completion via enemyAct. */
 function autoCombat(run: RunState, r = rng()): RunState {
   let next = run;
   let guard = 0;
-  while (next.phase === "combat" && guard++ < 500) {
+  while (next.phase === "combat" && guard++ < 2000) {
     const c = next.combat!;
-    const playable = c.hand.find((card) => c.player.energy >= getCardDef(card.defId).cost);
+    if (c.phase === "enemy") {
+      next = runReduce(next, { type: "combat", action: { type: "enemyAct" } }, r);
+      continue;
+    }
+    const playable = c.hand.find((card) => isPlayable(getCardDef(card.defId), c.player.energy));
     if (playable) {
       const def = getCardDef(playable.defId);
       const targetIndex = def.target === "enemy" ? firstLivingEnemy(c) : undefined;
@@ -48,6 +53,18 @@ describe("starting loadout", () => {
     const run = createRun({ seed: 1 });
     expect(run.player.relics).toHaveLength(0);
     expect(run.player.potions).toHaveLength(0);
+  });
+
+  it("a character sets the starting deck, max HP, and relic", () => {
+    const warrior = createRun({ seed: 1, character: "warrior" });
+    expect(warrior.player.maxHp).toBe(80);
+    expect(warrior.player.deck).toContain("bash");
+    expect(warrior.player.relics).toEqual(["vajra"]);
+
+    const rogue = createRun({ seed: 1, character: "rogue" });
+    expect(rogue.player.maxHp).toBe(68);
+    expect(rogue.player.deck).toContain("poisonStab");
+    expect(rogue.player.relics).toEqual(["shuriken"]);
   });
 
   it("grants random starting relics when requested (deterministic per seed)", () => {
@@ -273,33 +290,49 @@ describe("potions", () => {
 });
 
 describe("events", () => {
-  function enterEvent(): RunState {
-    const base = createRun({ seed: 1, maxHp: 100, potions: [] });
-    const eventNode = base.map.rows.flat().find((n) => n.type === "event");
-    if (!eventNode) throw new Error("seed 1 produced no event node");
-    const at: RunState = { ...base, currentRow: eventNode.row - 1, player: { ...base.player, hp: 60, gold: 100 } };
-    return runReduce(at, { type: "selectNode", nodeId: eventNode.id }, rng());
+  // Sit the run in a specific event (events are otherwise randomly chosen).
+  function eventWith(id: string): RunState {
+    const base = createRun({ seed: 1, maxHp: 100, deck: ["strike", "defend"] });
+    const node = base.map.rows.flat().find((n) => n.type === "event")!;
+    return {
+      ...base,
+      currentRow: node.row,
+      currentNodeId: node.id,
+      visited: [node.id],
+      phase: "event",
+      event: { id },
+      player: { ...base.player, hp: 60, gold: 100 },
+    };
   }
 
   it("entering an event sets the event phase", () => {
-    const run = enterEvent();
+    const base = createRun({ seed: 1 });
+    const node = base.map.rows.flat().find((n) => n.type === "event")!;
+    const run = runReduce({ ...base, currentRow: node.row - 1 }, { type: "selectNode", nodeId: node.id }, rng());
     expect(run.phase).toBe("event");
     expect(run.event).not.toBeNull();
   });
 
-  it("choosing an option applies effects and returns to the map", () => {
-    let run = enterEvent();
-    const before = { hp: run.player.hp, gold: run.player.gold, relics: run.player.relics.length };
+  it("a non-combat choice applies effects and returns to the map", () => {
+    // Shrine, choice 0 = gain a random relic.
+    let run = eventWith("shrine");
     run = runReduce(run, { type: "chooseEventOption", index: 0 }, rng());
     expect(run.phase).toBe("map");
     expect(run.event).toBeNull();
     expect(run.notice).not.toBeNull();
-    // Something changed (gold/hp/relics/deck) — the choice had an effect.
-    const changed =
-      run.player.hp !== before.hp ||
-      run.player.gold !== before.gold ||
-      run.player.relics.length !== before.relics;
-    expect(changed).toBe(true);
+    expect(run.player.relics).toHaveLength(1);
+  });
+
+  it("a fight choice starts combat with the listed enemies", () => {
+    // Goblin Ambush, choice 0 = stand and fight (2 goblins).
+    let run = eventWith("goblinAmbush");
+    run = runReduce(run, { type: "chooseEventOption", index: 0 }, rng());
+    expect(run.phase).toBe("combat");
+    expect(run.combat).not.toBeNull();
+    expect(run.combat!.enemies.map((e) => e.defId)).toEqual(["goblin", "goblin"]);
+    // Winning the event-fight yields a normal reward (not boss/gameOver).
+    run = autoCombat(run);
+    expect(["reward", "map"]).toContain(run.phase);
   });
 });
 

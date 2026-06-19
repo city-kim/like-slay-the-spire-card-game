@@ -1,9 +1,24 @@
 import { useEffect, useState } from "react";
-import { getCardDef, type CardDef, type GameAction, type GameState, type Statuses } from "../engine";
+import { getCardDef, isPlayable, type CardDef, type GameAction, type GameState, type Statuses } from "../engine";
 import { useTranslation } from "../i18n";
 import { CardFace } from "./CardFace";
 import { enemyImage } from "./enemyImages";
-import playerUrl from "../assets/ui/player.png";
+import { useHpPopups, type HpPopup } from "./useHpPopups";
+
+/** Floating damage/heal numbers for a combatant. */
+function HpPopups({ popups }: { popups: HpPopup[] }) {
+  if (popups.length === 0) return null;
+  return (
+    <>
+      {popups.map((p) => (
+        <span key={p.key} className={`dmg-pop ${p.kind}`}>
+          {p.kind === "heal" ? "+" : "-"}
+          {p.amount}
+        </span>
+      ))}
+    </>
+  );
+}
 
 type TFn = ReturnType<typeof useTranslation>["t"];
 
@@ -55,15 +70,61 @@ function intentLabel(state: GameState, enemyIndex: number, t: TFn): string {
 
 /** Presentational combat view: renders a GameState and emits GameActions.
  *  Combat lifecycle (win/lose transitions) is owned by the run layer. */
-export function CombatView({ state, onAction }: { state: GameState; onAction: (action: GameAction) => void }) {
+export function CombatView({
+  state,
+  onAction,
+  portraitUrl,
+}: {
+  state: GameState;
+  onAction: (action: GameAction) => void;
+  portraitUrl: string;
+}) {
   const { t } = useTranslation();
   const [targetingUid, setTargetingUid] = useState<string | null>(null);
+  const popups = useHpPopups(state);
 
   useEffect(() => {
     if (targetingUid && !state.hand.some((c) => c.uid === targetingUid)) {
       setTargetingUid(null);
     }
   }, [state.hand, targetingUid]);
+
+  // During the enemy phase, advance one enemy at a time on a delay so attacks
+  // play out sequentially (each with its own damage popup) instead of at once.
+  useEffect(() => {
+    if (state.phase !== "enemy") return;
+    const timer = setTimeout(() => onAction({ type: "enemyAct" }), 650);
+    return () => clearTimeout(timer);
+  }, [state, onAction]);
+
+  // Keyboard controls: 1–9 play that hand card (single-target attacks hit the
+  // first living enemy), E/Enter ends the turn, Esc cancels targeting.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.target instanceof HTMLInputElement) return;
+      if (e.key === "Escape") {
+        setTargetingUid(null);
+        return;
+      }
+      if (state.phase !== "player") return;
+      if (e.key === "e" || e.key === "E" || e.key === "Enter") {
+        onAction({ type: "endTurn" });
+        return;
+      }
+      const n = Number(e.key);
+      if (Number.isInteger(n) && n >= 1 && n <= 9) {
+        const card = state.hand[n - 1];
+        if (!card) return;
+        const def = getCardDef(card.defId);
+        if (!isPlayable(def, state.player.energy)) return;
+        const targetIndex =
+          def.target === "enemy" && !def.aoe ? Math.max(0, state.enemies.findIndex((en) => en.hp > 0)) : undefined;
+        onAction({ type: "playCard", uid: card.uid, targetIndex });
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [state, onAction]);
 
   const isPlayerTurn = state.phase === "player";
   const isTargeting = targetingUid !== null;
@@ -72,7 +133,7 @@ export function CombatView({ state, onAction }: { state: GameState; onAction: (a
     const card = state.hand.find((c) => c.uid === uid);
     if (!card || !isPlayerTurn) return;
     const def = getCardDef(card.defId);
-    if (state.player.energy < def.cost) return;
+    if (!isPlayable(def, state.player.energy)) return;
 
     if (targetingUid === uid) {
       setTargetingUid(null);
@@ -104,18 +165,22 @@ export function CombatView({ state, onAction }: { state: GameState; onAction: (a
           const targetable = isTargeting && alive;
           const art = enemyImage(enemy.defId);
           return (
-            <div
-              // Keying by hp remounts on damage so the hit animation replays.
-              key={`${i}-${enemy.hp}`}
-              className={`enemy ${alive ? "" : "dead"} ${targetable ? "targetable" : ""}`}
-              style={art ? { backgroundImage: `url(${art})` } : undefined}
-              onClick={() => onEnemyClick(i)}
-              role={targetable ? "button" : undefined}
-            >
-              <div className="enemy-name">{t(`enemy.${enemy.defId}.name`)}</div>
-              <div className="intent">{alive ? intentLabel(state, i, t) : t("intent.dead")}</div>
-              <HealthBar hp={enemy.hp} maxHp={enemy.maxHp} block={enemy.block} />
-              <StatusPips statuses={enemy.statuses} t={t} />
+            // Stable slot holds the floating numbers; the inner .enemy is keyed
+            // by hp so its hit animation replays on each change.
+            <div key={i} className="enemy-slot">
+              <HpPopups popups={popups.filter((p) => p.target === i)} />
+              <div
+                key={enemy.hp}
+                className={`enemy ${alive ? "" : "dead"} ${targetable ? "targetable" : ""}`}
+                style={art ? { backgroundImage: `url(${art})` } : undefined}
+                onClick={() => onEnemyClick(i)}
+                role={targetable ? "button" : undefined}
+              >
+                <div className="enemy-name">{t(`enemy.${enemy.defId}.name`)}</div>
+                <div className="intent">{alive ? intentLabel(state, i, t) : t("intent.dead")}</div>
+                <HealthBar hp={enemy.hp} maxHp={enemy.maxHp} block={enemy.block} />
+                <StatusPips statuses={enemy.statuses} t={t} />
+              </div>
             </div>
           );
         })}
@@ -123,7 +188,8 @@ export function CombatView({ state, onAction }: { state: GameState; onAction: (a
 
       <section className="player-area">
         <div className="player">
-          <img className="player-portrait" src={playerUrl} alt={t("ui.you")} />
+          <HpPopups popups={popups.filter((p) => p.target === "player")} />
+          <img className="player-portrait" src={portraitUrl} alt={t("ui.you")} />
           <div className="player-name">{t("ui.you")}</div>
           <HealthBar hp={state.player.hp} maxHp={state.player.maxHp} block={state.player.block} />
           <StatusPips statuses={state.player.statuses} t={t} />
@@ -138,9 +204,9 @@ export function CombatView({ state, onAction }: { state: GameState; onAction: (a
       </section>
 
       <section className="hand">
-        {state.hand.map((card) => {
+        {state.hand.map((card, i) => {
           const def = getCardDef(card.defId);
-          const affordable = state.player.energy >= def.cost && isPlayerTurn;
+          const affordable = isPlayable(def, state.player.energy) && isPlayerTurn;
           return (
             <button
               key={card.uid}
@@ -148,11 +214,13 @@ export function CombatView({ state, onAction }: { state: GameState; onAction: (a
               disabled={!affordable}
               onClick={() => onCardClick(card.uid)}
             >
+              {i < 9 && <span className="card-key">{i + 1}</span>}
               <CardFace defId={def.id} />
             </button>
           );
         })}
       </section>
+      <div className="key-hint">{t("ui.keyHint")}</div>
 
       <section className="piles">
         <span>{t("ui.draw")}: {state.drawPile.length}</span>
