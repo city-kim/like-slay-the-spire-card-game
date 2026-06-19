@@ -55,6 +55,21 @@ describe("starting loadout", () => {
     expect(run.player.potions).toHaveLength(0);
   });
 
+  it("difficulty defaults to 0 and scales enemy HP in combat", () => {
+    const base = createRun({ seed: 1, deck: Array(10).fill("strike") });
+    expect(base.difficulty).toBe(0);
+    const node = availableNodes(base.map, base.currentRow)[0];
+    const easy = runReduce(base, { type: "selectNode", nodeId: node.id }, rng());
+
+    const hard = createRun({ seed: 1, deck: Array(10).fill("strike"), difficulty: 4 });
+    const node2 = availableNodes(hard.map, hard.currentRow)[0];
+    const hardCombat = runReduce(hard, { type: "selectNode", nodeId: node2.id }, rng());
+
+    // Same enemies, but higher difficulty → more HP and enemy Strength.
+    expect(hardCombat.combat!.enemies[0].maxHp).toBeGreaterThan(easy.combat!.enemies[0].maxHp);
+    expect(hardCombat.combat!.enemies[0].statuses.strength).toBe(4);
+  });
+
   it("a character sets the starting deck, max HP, and relic", () => {
     const warrior = createRun({ seed: 1, character: "warrior" });
     expect(warrior.player.maxHp).toBe(80);
@@ -291,8 +306,9 @@ describe("potions", () => {
 
 describe("events", () => {
   // Sit the run in a specific event (events are otherwise randomly chosen).
+  // Strong deck/HP so the fight-choice event reliably resolves to a win.
   function eventWith(id: string): RunState {
-    const base = createRun({ seed: 1, maxHp: 100, deck: ["strike", "defend"] });
+    const base = createRun({ seed: 1, maxHp: 400, deck: Array(20).fill("strike") });
     const node = base.map.rows.flat().find((n) => n.type === "event")!;
     return {
       ...base,
@@ -301,7 +317,7 @@ describe("events", () => {
       visited: [node.id],
       phase: "event",
       event: { id },
-      player: { ...base.player, hp: 60, gold: 100 },
+      player: { ...base.player, hp: 300, gold: 100 },
     };
   }
 

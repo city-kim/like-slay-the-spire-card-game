@@ -27,6 +27,8 @@ export const ko = {
     emptySlot: "빈 슬롯",
     use: "사용",
     keyHint: "단축키: 1~9 카드 사용 · E 턴 종료 · Esc 타겟 취소",
+    soundOn: "소리 켜기",
+    soundOff: "음소거",
   },
   intent: {
     attack: "⚔ {dmg}",
@@ -40,10 +42,16 @@ export const ko = {
     restart: "새 런",
     victory: "런 클리어! 🎉",
     gameOver: "패배… 런 종료",
+    cleared: "난이도 {n} 클리어! 🎉",
+    nextDifficulty: "다음 난이도 도전 (난이도 {n})",
+    retry: "다시 도전 (난이도 {n})",
+    fromStart: "처음부터 (난이도 0)",
   },
   select: {
     title: "캐릭터 선택",
     hint: "시드를 입력하면 같은 맵을 다시 플레이할 수 있어요 (선택).",
+    difficulty: "난이도 {n}",
+    resetDifficulty: "난이도 초기화",
   },
   character: {
     warrior: { name: "전사", desc: "튼튼한 체력과 힘. 정공법으로 밀어붙인다." },

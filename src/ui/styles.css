@@ -78,6 +78,9 @@ body {
 .char-desc { font-size: 13px; color: var(--muted); min-height: 36px; }
 .char-stats { display: flex; gap: 10px; font-size: 13px; flex-wrap: wrap; justify-content: center; }
 .char-hint { color: var(--muted); font-size: 13px; }
+.difficulty-line { display: flex; align-items: center; gap: 10px; color: var(--accent); font-size: 15px; }
+.difficulty-reset { font-size: 12px; padding: 4px 10px; }
+.banner-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 
 .combat {
   display: flex;
@@ -178,8 +181,10 @@ body {
   opacity: 0.22;
 }
 .topbar .turn { color: var(--muted); }
-.topbar .lang-switcher { margin-left: auto; }
-.topbar .lang-switcher + button { margin-left: 0; }
+/* The controls (sound / language / restart) hug the right edge as a group. */
+.topbar .sound-toggle { margin-left: auto; }
+
+.sound-toggle { font-size: 16px; padding: 6px 10px; line-height: 1; }
 
 .lang-switcher select {
   background: var(--panel);
@@ -420,6 +425,21 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .card:not(:disabled):hover {
   transform: translateY(-8px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+/* Drawn cards deal in; the played card flies up and fades before it resolves. */
+.hand .card { animation: cardIn 0.22s ease both; }
+.hand .card.playing {
+  animation: cardPlay 0.2s ease forwards;
+  pointer-events: none;
+  z-index: 6;
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cardPlay {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-64px) scale(1.15); opacity: 0; }
 }
 .card-attack { border-color: #b25b3b; }
 .card-skill { border-color: #3b86b2; }

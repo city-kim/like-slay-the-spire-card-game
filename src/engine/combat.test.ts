@@ -123,6 +123,23 @@ describe("combat engine", () => {
   });
 });
 
+describe("difficulty scaling", () => {
+  it("enemyHpMult scales enemy max HP (rounded)", () => {
+    const s = createInitialState({ seed: 1, enemyIds: ["jawWorm"], enemyHpMult: 1.5 });
+    expect(s.enemies[0].maxHp).toBe(Math.round(42 * 1.5)); // 63
+    expect(s.enemies[0].hp).toBe(63);
+  });
+
+  it("enemyStrength buffs every enemy's attacks", () => {
+    const base = createInitialState({ seed: 1, deck: [], enemyIds: ["jawWorm"] });
+    const buffed = createInitialState({ seed: 1, deck: [], enemyIds: ["jawWorm"], enemyStrength: 3 });
+    expect(buffed.enemies[0].statuses.strength).toBe(3);
+    // Jaw Worm turn-0 chomp is 11; with +3 Strength it hits for 14.
+    expect(80 - resolveTurn(base).player.hp).toBe(11);
+    expect(80 - resolveTurn(buffed).player.hp).toBe(14);
+  });
+});
+
 describe("enemy AI", () => {
   it("never repeats the same move three times in a row, and varies its moves", () => {
     const def = getEnemyDef("jawWorm");

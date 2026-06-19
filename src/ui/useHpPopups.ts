@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { GameState } from "../engine";
+import { playSound } from "./sound";
 
 export interface HpPopup {
   key: number;
@@ -37,6 +38,11 @@ export function useHpPopups(state: GameState): HpPopup[] {
       fresh.push({ key: counter.current++, target: "player", amount: state.player.hp - before.player, kind: "heal" });
     }
     if (fresh.length === 0) return;
+
+    // One sound per batch (avoid stacking many on multi-hit).
+    if (fresh.some((p) => p.kind === "damage" && p.target !== "player")) playSound("attack");
+    if (fresh.some((p) => p.kind === "damage" && p.target === "player")) playSound("hurt");
+    if (fresh.some((p) => p.kind === "heal")) playSound("heal");
 
     setPopups((ps) => [...ps, ...fresh]);
     const keys = new Set(fresh.map((p) => p.key));

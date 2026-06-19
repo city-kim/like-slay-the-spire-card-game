@@ -1,6 +1,8 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { type GameAction } from "../engine";
 import { useTranslation } from "../i18n";
+import { playSound } from "./sound";
+import { SoundToggle } from "./SoundToggle";
 import { characterImage, relicImage } from "./assetImages";
 import logoUrl from "../assets/ui/logo.png";
 import playerUrl from "../assets/ui/player.png";
@@ -25,6 +27,13 @@ export function RunScreen() {
     [dispatch],
   );
 
+  // Victory / defeat stings.
+  const phase = state?.phase;
+  useEffect(() => {
+    if (phase === "victory") playSound("victory");
+    else if (phase === "gameOver") playSound("defeat");
+  }, [phase]);
+
   // No active run → character select.
   if (!state) return <CharacterSelect onStart={start} />;
 
@@ -38,8 +47,10 @@ export function RunScreen() {
           <span>❤ {player.hp}/{player.maxHp}</span>
           <span>💰 {player.gold}</span>
           <span>🎴 {player.deck.length}</span>
+          <span title={t("select.difficulty", { n: state.difficulty })}>🔥 {state.difficulty}</span>
           <span>🎲 {state.seed}</span>
         </div>
+        <SoundToggle />
         <LanguageSwitcher />
         <button onClick={() => restart()}>{t("run.restart")}</button>
       </header>
@@ -109,10 +120,27 @@ export function RunScreen() {
         />
       )}
 
-      {(state.phase === "gameOver" || state.phase === "victory") && (
-        <div className={`banner ${state.phase === "victory" ? "won" : "lost"}`}>
-          {state.phase === "victory" ? t("run.victory") : t("run.gameOver")}
-          <button onClick={() => restart()}>{t("run.restart")}</button>
+      {state.phase === "victory" && (
+        <div className="banner won">
+          {t("run.cleared", { n: state.difficulty })}
+          <div className="banner-actions">
+            {/* Endless: next run escalates difficulty. */}
+            <button onClick={() => restart(state.difficulty + 1)}>
+              {t("run.nextDifficulty", { n: state.difficulty + 1 })}
+            </button>
+            <button onClick={() => restart(0)}>{t("run.fromStart")}</button>
+          </div>
+        </div>
+      )}
+
+      {state.phase === "gameOver" && (
+        <div className="banner lost">
+          {t("run.gameOver")}
+          <div className="banner-actions">
+            {/* Retry the same difficulty, or reset to 0. */}
+            <button onClick={() => restart(state.difficulty)}>{t("run.retry", { n: state.difficulty })}</button>
+            <button onClick={() => restart(0)}>{t("run.fromStart")}</button>
+          </div>
         </div>
       )}
     </div>

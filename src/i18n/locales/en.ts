@@ -26,6 +26,8 @@ export const en: Resources = {
     emptySlot: "Empty",
     use: "Use",
     keyHint: "Keys: 1–9 play card · E end turn · Esc cancel target",
+    soundOn: "Unmute",
+    soundOff: "Mute",
   },
   intent: {
     attack: "⚔ {dmg}",
@@ -39,10 +41,16 @@ export const en: Resources = {
     restart: "New run",
     victory: "Run cleared! 🎉",
     gameOver: "Defeated… run over",
+    cleared: "Difficulty {n} cleared! 🎉",
+    nextDifficulty: "Next difficulty (level {n})",
+    retry: "Retry (difficulty {n})",
+    fromStart: "From the start (difficulty 0)",
   },
   select: {
     title: "Choose your character",
     hint: "Enter a seed to replay the same map (optional).",
+    difficulty: "Difficulty {n}",
+    resetDifficulty: "Reset difficulty",
   },
   character: {
     warrior: { name: "Warrior", desc: "High HP and Strength. Wins through brute force." },

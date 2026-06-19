@@ -48,6 +48,10 @@ export interface StartOptions {
    *  run layer to carry damage between fights. */
   hp?: number;
   relics?: RelicId[];
+  /** Multiplies every enemy's max HP (difficulty scaling). Default 1. */
+  enemyHpMult?: number;
+  /** Strength granted to every enemy at spawn (difficulty scaling). Default 0. */
+  enemyStrength?: number;
 }
 
 export function createInitialState(opts: StartOptions = {}): GameState {
@@ -65,7 +69,9 @@ export function createInitialState(opts: StartOptions = {}): GameState {
   const innate = shuffled.filter((c) => getCardDef(c.defId).innate);
   const normal = shuffled.filter((c) => !getCardDef(c.defId).innate);
 
-  const enemies: Enemy[] = enemyIds.map((id) => spawnEnemy(getEnemyDef(id), rng));
+  const enemies: Enemy[] = enemyIds.map((id) =>
+    spawnEnemy(getEnemyDef(id), rng, opts.enemyHpMult ?? 1, opts.enemyStrength ?? 0),
+  );
 
   let state: GameState = {
     turn: 0,
@@ -95,14 +101,15 @@ export function createInitialState(opts: StartOptions = {}): GameState {
   return drawCards(state, Math.max(0, HAND_SIZE - state.hand.length), rng);
 }
 
-function spawnEnemy(def: EnemyDef, rng: RNG): Enemy {
+function spawnEnemy(def: EnemyDef, rng: RNG, hpMult: number, strength: number): Enemy {
   const firstMove = def.pattern({ turn: 0, rng, history: [] });
+  const maxHp = Math.max(1, Math.round(def.maxHp * hpMult));
   return {
     defId: def.id,
-    hp: def.maxHp,
-    maxHp: def.maxHp,
+    hp: maxHp,
+    maxHp,
     block: 0,
-    statuses: {},
+    statuses: strength > 0 ? { strength } : {},
     history: [firstMove.id],
     nextMove: firstMove,
   };

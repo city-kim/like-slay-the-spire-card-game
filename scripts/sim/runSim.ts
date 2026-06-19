@@ -60,7 +60,8 @@ interface RunResult {
 
 function runOne(opts: StartOptions, policy: Policy, maxSteps = 1000): RunResult {
   const rng = makeRng(opts.seed ?? 1);
-  let state = createInitialState(opts);
+  // Mirror the run's base difficulty (enemies are 1.5× HP) so numbers are real.
+  let state = createInitialState({ enemyHpMult: 1.5, ...opts });
   const startHp = state.player.hp;
   let steps = 0;
 

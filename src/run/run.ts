@@ -34,12 +34,23 @@ export interface RunOptions {
   seed?: number;
   /** Playable character id (sets default deck / maxHp / starting relic). */
   character?: string;
+  /** Difficulty / ascension level (endless escalation). Default 0. */
+  difficulty?: number;
   deck?: string[];
   maxHp?: number;
   relics?: RelicId[];
   potions?: PotionId[];
   /** If set (and `relics` not given), grant this many random starting relics. */
   randomRelics?: number;
+}
+
+// Enemies start at 1.5× HP; each difficulty level adds +15% HP and +1 Strength.
+const BASE_ENEMY_HP_MULT = 1.5;
+function difficultyMods(difficulty: number) {
+  return {
+    enemyHpMult: BASE_ENEMY_HP_MULT * (1 + 0.15 * difficulty),
+    enemyStrength: difficulty,
+  };
 }
 
 /** Picks `count` distinct random relics, deterministic per seed. */
@@ -68,6 +79,7 @@ export function createRun(opts: RunOptions = {}): RunState {
   return {
     seed,
     character: opts.character,
+    difficulty: opts.difficulty ?? 0,
     map: generateMap(seed),
     currentRow: -1,
     currentNodeId: null,
@@ -272,7 +284,8 @@ function buildCombat(run: RunState, type: NodeType, rng: RNG): GameState {
   return startCombatWith(run, pickEnemies(type, rng), rng);
 }
 
-/** Builds a combat against a specific enemy list (carrying the run's loadout). */
+/** Builds a combat against a specific enemy list (carrying the run's loadout
+ *  and applying difficulty scaling to the enemies). */
 function startCombatWith(run: RunState, enemyIds: string[], rng: RNG): GameState {
   return createInitialState({
     seed: rng.int(1_000_000) + 1,
@@ -281,6 +294,7 @@ function startCombatWith(run: RunState, enemyIds: string[], rng: RNG): GameState
     maxHp: run.player.maxHp,
     hp: run.player.hp,
     relics: run.player.relics,
+    ...difficultyMods(run.difficulty),
   });
 }
 

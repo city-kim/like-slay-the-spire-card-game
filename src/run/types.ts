@@ -82,6 +82,8 @@ export interface RunState {
   seed: number;
   /** Chosen character id (drives the combat portrait, etc.). */
   character?: string;
+  /** Difficulty / ascension level — escalates each cleared run (endless). */
+  difficulty: number;
   map: RunMap;
   /** Row the player currently sits on (-1 before the first pick). */
   currentRow: number;

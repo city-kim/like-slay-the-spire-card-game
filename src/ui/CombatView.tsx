@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getCardDef, isPlayable, type CardDef, type GameAction, type GameState, type Statuses } from "../engine";
 import { useTranslation } from "../i18n";
 import { CardFace } from "./CardFace";
 import { enemyImage } from "./enemyImages";
 import { useHpPopups, type HpPopup } from "./useHpPopups";
+import { playSound } from "./sound";
 
 /** Floating damage/heal numbers for a combatant. */
 function HpPopups({ popups }: { popups: HpPopup[] }) {
@@ -81,6 +82,10 @@ export function CombatView({
 }) {
   const { t } = useTranslation();
   const [targetingUid, setTargetingUid] = useState<string | null>(null);
+  // The card mid-play-animation; its action fires after the animation. The ref
+  // mirrors it for the keyboard handler (whose closure can be stale).
+  const [playingUid, setPlayingUid] = useState<string | null>(null);
+  const playingRef = useRef(false);
   const popups = useHpPopups(state);
 
   useEffect(() => {
@@ -114,22 +119,38 @@ export function CombatView({
       const n = Number(e.key);
       if (Number.isInteger(n) && n >= 1 && n <= 9) {
         const card = state.hand[n - 1];
-        if (!card) return;
+        if (!card || playingRef.current) return;
         const def = getCardDef(card.defId);
         if (!isPlayable(def, state.player.energy)) return;
         const targetIndex =
           def.target === "enemy" && !def.aoe ? Math.max(0, state.enemies.findIndex((en) => en.hp > 0)) : undefined;
-        onAction({ type: "playCard", uid: card.uid, targetIndex });
+        commitPlay(card.uid, { type: "playCard", uid: card.uid, targetIndex });
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, onAction]);
 
   const isPlayerTurn = state.phase === "player";
   const isTargeting = targetingUid !== null;
 
+  /** Animate the card leaving the hand, then dispatch the play action. */
+  function commitPlay(uid: string, action: GameAction) {
+    if (playingRef.current) return; // already animating a play
+    playingRef.current = true;
+    playSound("cardPlay");
+    setTargetingUid(null);
+    setPlayingUid(uid);
+    setTimeout(() => {
+      onAction(action);
+      setPlayingUid(null);
+      playingRef.current = false;
+    }, 200);
+  }
+
   function onCardClick(uid: string) {
+    if (playingRef.current) return;
     const card = state.hand.find((c) => c.uid === uid);
     if (!card || !isPlayerTurn) return;
     const def = getCardDef(card.defId);
@@ -143,14 +164,12 @@ export function CombatView({
       setTargetingUid(uid);
       return;
     }
-    onAction({ type: "playCard", uid });
-    setTargetingUid(null);
+    commitPlay(uid, { type: "playCard", uid });
   }
 
   function onEnemyClick(index: number) {
-    if (!isTargeting || state.enemies[index].hp <= 0) return;
-    onAction({ type: "playCard", uid: targetingUid!, targetIndex: index });
-    setTargetingUid(null);
+    if (playingRef.current || !isTargeting || state.enemies[index].hp <= 0) return;
+    commitPlay(targetingUid!, { type: "playCard", uid: targetingUid!, targetIndex: index });
   }
 
   return (
@@ -210,8 +229,8 @@ export function CombatView({
           return (
             <button
               key={card.uid}
-              className={`card card-${def.type} ${targetingUid === card.uid ? "selected" : ""}`}
-              disabled={!affordable}
+              className={`card card-${def.type} ${targetingUid === card.uid ? "selected" : ""} ${playingUid === card.uid ? "playing" : ""}`}
+              disabled={!affordable || playingUid === card.uid}
               onClick={() => onCardClick(card.uid)}
             >
               {i < 9 && <span className="card-key">{i + 1}</span>}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { makeRng, restoreRng, type RNG } from "../engine";
 import { createRun, runReduce, type RunAction, type RunState } from "../run";
 import { clearRun, loadRun, saveRun } from "./runStorage";
+import { loadDifficulty, saveDifficulty } from "./difficultyStorage";
 
 /**
  * React binding around the pure run reducer, with localStorage persistence and
@@ -30,15 +31,17 @@ export function useRun() {
     setState((prev) => (prev ? runReduce(prev, action, rngRef.current!) : prev));
   }, []);
 
-  /** Begin a run with the chosen character. A given seed is reproducible. */
+  /** Begin a run with the chosen character at the stored difficulty. */
   const start = useCallback((character: string, seed?: number) => {
     const s = seed ?? Math.floor(Math.random() * 1_000_000_000);
     rngRef.current = makeRng(s * 7 + 1);
-    setState(createRun({ seed: s, character }));
+    setState(createRun({ seed: s, character, difficulty: loadDifficulty() }));
   }, []);
 
-  /** Abandon the run and return to character select. */
-  const restart = useCallback(() => {
+  /** Abandon the run and return to character select. `nextDifficulty` sets the
+   *  difficulty the next run will use (clear → +1, reset → 0). */
+  const restart = useCallback((nextDifficulty?: number) => {
+    if (nextDifficulty !== undefined) saveDifficulty(nextDifficulty);
     clearRun();
     rngRef.current = null;
     setState(null);
