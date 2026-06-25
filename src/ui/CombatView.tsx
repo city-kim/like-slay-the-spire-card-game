@@ -176,7 +176,11 @@ export function CombatView({
     <div className="combat">
       <div className="combat-turn">{t("ui.turn", { turn: state.turn + 1 })}</div>
 
-      {isTargeting && <div className="targeting-hint">{t("ui.chooseTarget")}</div>}
+      {/* Always rendered to reserve its slot; toggled via visibility so the
+          combat layout doesn't shift when targeting starts/ends. */}
+      <div className={`targeting-hint ${isTargeting ? "" : "is-hidden"}`} aria-hidden={!isTargeting}>
+        {t("ui.chooseTarget")}
+      </div>
 
       <section className="enemies">
         {state.enemies.map((enemy, i) => {

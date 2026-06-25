@@ -37,9 +37,11 @@ export function MapView({
   return (
     <div className="map">
       <h2>{t("run.mapTitle")}</h2>
-      {run.notice && (
-        <div className="notice">{t(run.notice.key, run.notice.params)}</div>
-      )}
+      {/* Always rendered (non-breaking space placeholder when empty) so the
+          map doesn't jump when a notice appears or clears. */}
+      <div className={`notice ${run.notice ? "" : "is-hidden"}`} aria-hidden={!run.notice}>
+        {run.notice ? t(run.notice.key, run.notice.params) : "\u00A0"}
+      </div>
 
       <div className="map-rows">
         {run.map.rows.map((row, r) => (

@@ -126,6 +126,11 @@ body {
   border-radius: 8px;
   padding: 8px 12px;
 }
+/* Keep the reserved slot but hide it so the map doesn't jump. */
+.notice.is-hidden {
+  visibility: hidden;
+  background: transparent;
+}
 
 /* ── Reward ── */
 .reward { display: flex; flex-direction: column; align-items: center; gap: 12px; }
@@ -350,6 +355,11 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   padding: 6px;
   border: 1px dashed var(--accent);
   border-radius: 8px;
+}
+/* Keep the reserved slot but hide content so the layout stays put. */
+.targeting-hint.is-hidden {
+  visibility: hidden;
+  border-color: transparent;
 }
 .intent { font-size: 18px; margin: 6px 0; color: var(--accent); }
 
