@@ -1,0 +1,610 @@
+{
+"src/assets/ui/background.png": [
+1024,
+576
+],
+"src/assets/ui/logo.png": [
+640,
+240
+],
+"src/assets/ui/player.png": [
+220,
+300
+],
+"src/assets/nodes/event.png": [
+100,
+100
+],
+"src/assets/nodes/treasure.png": [
+100,
+100
+],
+"src/assets/nodes/elite.png": [
+100,
+100
+],
+"src/assets/nodes/boss.png": [
+100,
+100
+],
+"src/assets/nodes/combat.png": [
+100,
+100
+],
+"src/assets/nodes/shop.png": [
+100,
+100
+],
+"src/assets/nodes/rest.png": [
+100,
+100
+],
+"src/assets/cards/acrobatics.png": [
+130,
+170
+],
+"src/assets/cards/defend.png": [
+130,
+170
+],
+"src/assets/cards/hemokinesis.png": [
+130,
+170
+],
+"src/assets/cards/strike.png": [
+130,
+170
+],
+"src/assets/cards/whirlwindStrike.png": [
+130,
+170
+],
+"src/assets/cards/vampiricStrike.png": [
+130,
+170
+],
+"src/assets/cards/jab.png": [
+130,
+170
+],
+"src/assets/cards/fortify.png": [
+130,
+170
+],
+"src/assets/cards/riposte.png": [
+130,
+170
+],
+"src/assets/cards/titanicBlow.png": [
+130,
+170
+],
+"src/assets/cards/ascension.png": [
+130,
+170
+],
+"src/assets/cards/divineShield.png": [
+130,
+170
+],
+"src/assets/cards/cleanse.png": [
+130,
+170
+],
+"src/assets/cards/handOfGreed.png": [
+130,
+170
+],
+"src/assets/cards/swiftStrike.png": [
+130,
+170
+],
+"src/assets/cards/transcend.png": [
+130,
+170
+],
+"src/assets/cards/ironWave.png": [
+130,
+170
+],
+"src/assets/cards/ironWavePlus.png": [
+130,
+170
+],
+"src/assets/cards/slash.png": [
+130,
+170
+],
+"src/assets/cards/destabilize.png": [
+130,
+170
+],
+"src/assets/cards/obliterate.png": [
+130,
+170
+],
+"src/assets/cards/battleTrance.png": [
+130,
+170
+],
+"src/assets/cards/recover.png": [
+130,
+170
+],
+"src/assets/cards/quake.png": [
+130,
+170
+],
+"src/assets/cards/enfeeble.png": [
+130,
+170
+],
+"src/assets/cards/metallize.png": [
+130,
+170
+],
+"src/assets/cards/ironWall.png": [
+130,
+170
+],
+"src/assets/cards/pommelStrike.png": [
+130,
+170
+],
+"src/assets/cards/terrify.png": [
+130,
+170
+],
+"src/assets/cards/disarm.png": [
+130,
+170
+],
+"src/assets/cards/bloodlust.png": [
+130,
+170
+],
+"src/assets/cards/weakenArmor.png": [
+130,
+170
+],
+"src/assets/cards/shrugItOff.png": [
+130,
+170
+],
+"src/assets/cards/bashPlus.png": [
+130,
+170
+],
+"src/assets/cards/cripplingJab.png": [
+130,
+170
+],
+"src/assets/cards/riptide.png": [
+130,
+170
+],
+"src/assets/cards/inflamePlus.png": [
+130,
+170
+],
+"src/assets/cards/heavyStrike.png": [
+130,
+170
+],
+"src/assets/cards/bash.png": [
+130,
+170
+],
+"src/assets/cards/offering.png": [
+130,
+170
+],
+"src/assets/cards/quickSlash.png": [
+130,
+170
+],
+"src/assets/cards/panacea.png": [
+130,
+170
+],
+"src/assets/cards/evasion.png": [
+130,
+170
+],
+"src/assets/cards/regenerate.png": [
+130,
+170
+],
+"src/assets/cards/steadyGuardPlus.png": [
+130,
+170
+],
+"src/assets/cards/blind.png": [
+130,
+170
+],
+"src/assets/cards/venomFang.png": [
+130,
+170
+],
+"src/assets/cards/foresight.png": [
+130,
+170
+],
+"src/assets/cards/seeingRed.png": [
+130,
+170
+],
+"src/assets/cards/guard.png": [
+130,
+170
+],
+"src/assets/cards/thunderclap.png": [
+130,
+170
+],
+"src/assets/cards/strikePlus.png": [
+130,
+170
+],
+"src/assets/cards/finishingBlow.png": [
+130,
+170
+],
+"src/assets/cards/shrugItOffPlus.png": [
+130,
+170
+],
+"src/assets/cards/secondWind.png": [
+130,
+170
+],
+"src/assets/cards/prepare.png": [
+130,
+170
+],
+"src/assets/cards/hammerOfFury.png": [
+130,
+170
+],
+"src/assets/cards/regrowth.png": [
+130,
+170
+],
+"src/assets/cards/toughen.png": [
+130,
+170
+],
+"src/assets/cards/clothesline.png": [
+130,
+170
+],
+"src/assets/cards/ironGuard.png": [
+130,
+170
+],
+"src/assets/cards/escapePlan.png": [
+130,
+170
+],
+"src/assets/cards/nimble.png": [
+130,
+170
+],
+"src/assets/cards/footwork.png": [
+130,
+170
+],
+"src/assets/cards/rampage.png": [
+130,
+170
+],
+"src/assets/cards/sweep.png": [
+130,
+170
+],
+"src/assets/cards/demonFormPlus.png": [
+130,
+170
+],
+"src/assets/cards/bandageUp.png": [
+130,
+170
+],
+"src/assets/cards/ironFist.png": [
+130,
+170
+],
+"src/assets/cards/phantomStrikePlus.png": [
+130,
+170
+],
+"src/assets/cards/gash.png": [
+130,
+170
+],
+"src/assets/cards/trip.png": [
+130,
+170
+],
+"src/assets/cards/uppercut.png": [
+130,
+170
+],
+"src/assets/cards/berserkStance.png": [
+130,
+170
+],
+"src/assets/cards/twinStrikePlus.png": [
+130,
+170
+],
+"src/assets/cards/flashOfSteel.png": [
+130,
+170
+],
+"src/assets/cards/lunge.png": [
+130,
+170
+],
+"src/assets/cards/piercingStab.png": [
+130,
+170
+],
+"src/assets/cards/venomStrike.png": [
+130,
+170
+],
+"src/assets/cards/clotheslinePlus.png": [
+130,
+170
+],
+"src/assets/cards/wildSwing.png": [
+130,
+170
+],
+"src/assets/cards/poisonStabPlus.png": [
+130,
+170
+],
+"src/assets/cards/poisonStab.png": [
+130,
+170
+],
+"src/assets/cards/sharpenBlade.png": [
+130,
+170
+],
+"src/assets/cards/defendPlus.png": [
+130,
+170
+],
+"src/assets/cards/warCry.png": [
+130,
+170
+],
+"src/assets/cards/steadyGuard.png": [
+130,
+170
+],
+"src/assets/cards/cleave.png": [
+130,
+170
+],
+"src/assets/cards/reaper.png": [
+130,
+170
+],
+"src/assets/cards/reboundStrike.png": [
+130,
+170
+],
+"src/assets/cards/pommelStrikePlus.png": [
+130,
+170
+],
+"src/assets/cards/patchUp.png": [
+130,
+170
+],
+"src/assets/cards/bludgeon.png": [
+130,
+170
+],
+"src/assets/cards/massParalysis.png": [
+130,
+170
+],
+"src/assets/cards/boomerangCut.png": [
+130,
+170
+],
+"src/assets/cards/brace.png": [
+130,
+170
+],
+"src/assets/cards/inflame.png": [
+130,
+170
+],
+"src/assets/cards/adrenaline.png": [
+130,
+170
+],
+"src/assets/cards/phantomStrike.png": [
+130,
+170
+],
+"src/assets/cards/throwingKnife.png": [
+130,
+170
+],
+"src/assets/cards/demonForm.png": [
+130,
+170
+],
+"src/assets/cards/carve.png": [
+130,
+170
+],
+"src/assets/cards/warCryPlus.png": [
+130,
+170
+],
+"src/assets/cards/lastStand.png": [
+130,
+170
+],
+"src/assets/cards/ironwood.png": [
+130,
+170
+],
+"src/assets/cards/executioner.png": [
+130,
+170
+],
+"src/assets/cards/fortress.png": [
+130,
+170
+],
+"src/assets/cards/twinStrike.png": [
+130,
+170
+],
+"src/assets/cards/cleavePlus.png": [
+130,
+170
+],
+"src/assets/cards/deepBreath.png": [
+130,
+170
+],
+"src/assets/cards/dodgeAndRoll.png": [
+130,
+170
+],
+"src/assets/cards/impervious.png": [
+130,
+170
+],
+"src/assets/cards/phoenix.png": [
+130,
+170
+],
+"src/assets/cards/sidestep.png": [
+130,
+170
+],
+"src/assets/cards/doubleJab.png": [
+130,
+170
+],
+"src/assets/relics/vajra.png": [
+120,
+120
+],
+"src/assets/relics/mercuryHourglass.png": [
+120,
+120
+],
+"src/assets/relics/bagOfMarbles.png": [
+120,
+120
+],
+"src/assets/relics/anchor.png": [
+120,
+120
+],
+"src/assets/relics/shuriken.png": [
+120,
+120
+],
+"src/assets/potions/swiftPotion.png": [
+100,
+140
+],
+"src/assets/potions/strengthPotion.png": [
+100,
+140
+],
+"src/assets/potions/explosivePotion.png": [
+100,
+140
+],
+"src/assets/potions/healingPotion.png": [
+100,
+140
+],
+"src/assets/potions/energyPotion.png": [
+100,
+140
+],
+"src/assets/potions/blockPotion.png": [
+100,
+140
+],
+"src/assets/characters/rogue.png": [
+220,
+300
+],
+"src/assets/characters/mage.png": [
+220,
+300
+],
+"src/assets/characters/warrior.png": [
+220,
+300
+],
+"src/assets/monsters/madDog.png": [
+200,
+120
+],
+"src/assets/monsters/fungiBeast.png": [
+200,
+120
+],
+"src/assets/monsters/acidSlime.png": [
+200,
+120
+],
+"src/assets/monsters/batSwarm.png": [
+200,
+120
+],
+"src/assets/monsters/slimeKing.png": [
+200,
+120
+],
+"src/assets/monsters/cultist.png": [
+200,
+120
+],
+"src/assets/monsters/goblin.png": [
+200,
+120
+],
+"src/assets/monsters/theGuardian.png": [
+200,
+120
+],
+"src/assets/monsters/looter.png": [
+200,
+120
+],
+"src/assets/monsters/redLouse.png": [
+200,
+120
+],
+"src/assets/monsters/jawWorm.png": [
+200,
+120
+],
+"src/assets/monsters/stoneGolem.png": [
+200,
+120
+],
+"src/assets/monsters/spikeSlime.png": [
+200,
+120
+]
+}
